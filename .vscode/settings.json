@@ -1,0 +1,62 @@
+{
+  // --- Interpreter & environment ---
+  // Let the Python extension auto-detect the Poetry-managed virtualenv.
+  // If it doesn't pick it up automatically, run `poetry env info --path`
+  // and set "python.defaultInterpreterPath" explicitly to that path.
+  "python.terminal.activateEnvironment": true,
+
+  // --- src layout support ---
+  // Ensures Pylance/IntelliSense resolves `from housepy...` imports correctly
+  // without requiring an editable install to be active in the IDE.
+  "python.analysis.extraPaths": ["./src"],
+  "python.analysis.typeCheckingMode": "basic",
+
+  // --- Testing (pytest) ---
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+
+  // --- Formatting & linting ---
+  // Uses Ruff for both linting and formatting (fast, single-tool replacement
+  // for flake8 + isort + black). Requires the "Ruff" VS Code extension.
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  // --- Editor niceties ---
+  "editor.insertSpaces": true,
+  "editor.tabSize": 4,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // --- Exclude noise from search & explorer ---
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/*.egg-info": true
+  },
+  "search.exclude": {
+    "**/.venv": true,
+    "**/dist": true
+  },
+
+  // --- Poetry / dependency files ---
+  "files.associations": {
+    "pyproject.toml": "toml",
+    "poetry.lock": "toml"
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:poetry",
+  "python-envs.defaultPackageManager": "ms-python.python:poetry",
+  "evenBetterToml.schema.enabled": true,
+  "evenBetterToml.schema.associations": {
+    "pyproject.toml": "https://json.schemastore.org/pyproject.json"
+  }
+}

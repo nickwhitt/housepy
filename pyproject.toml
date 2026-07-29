@@ -1,0 +1,29 @@
+[project]
+name = "housepy"
+version = "0.1.0"
+description = "Genealogy and peerage tracking for European nobility, built on FastAPI + NetworkX"
+authors = [
+    {name = "Nick Whitt",email = "nick.whitt@pm.me"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.14,!=3.14.1"
+dependencies = [
+    "networkx (>=3.6.1,<4.0.0)",
+    "pyvis (>=0.3.2,<0.4.0)",
+    "fastapi[standard] (>=0.140.13,<0.141.0)"
+]
+
+[dependency-groups]
+dev = [
+    "devtools (>=0.12.2,<0.13.0)",
+    "pytest (>=9.1.1,<10.0.0)",
+    "freezegun (>=1.5.5,<2.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "housepy", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

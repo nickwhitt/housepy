@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HousePy — A Register of Houses &amp; Lineage</title>
+    <meta
+      name="description"
+      content="HousePy tracks European nobility family trees — people, titles, and lineage events — as an open, citable historical dataset."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ledger: #1c2b22;
+        --ledger-deep: #16211a;
+        --vellum: #efe6cb;
+        --vellum-line: #d9cca3;
+        --seal: #8b2e2e;
+        --seal-dark: #6e2426;
+        --brass: #b8925a;
+        --ink: #2a2118;
+        --parchment-text: #e6dfc8;
+        --parchment-muted: #a9b3a3;
+        --focus: #d9b06a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ledger);
+        color: var(--parchment-text);
+        font-family: "Source Sans 3", sans-serif;
+        line-height: 1.55;
+      }
+
+      a {
+        color: inherit;
+      }
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ---------- Header ---------- */
+      header {
+        padding: 28px 0 20px;
+        border-bottom: 1px solid rgba(184, 146, 90, 0.25);
+      }
+      .header-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .wordmark {
+        font-family: "Cormorant Garamond", serif;
+        font-weight: 600;
+        font-size: 1.7rem;
+        letter-spacing: 0.02em;
+      }
+      .tagline {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--parchment-muted);
+        margin-top: 2px;
+      }
+      nav a {
+        text-decoration: none;
+        font-size: 0.85rem;
+        letter-spacing: 0.03em;
+        margin-left: 22px;
+        padding-bottom: 2px;
+        border-bottom: 1px solid transparent;
+      }
+      nav a:hover {
+        border-bottom-color: var(--brass);
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        padding: 72px 0 64px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 48px;
+        align-items: center;
+      }
+      .hero h1 {
+        font-family: "Cormorant Garamond", serif;
+        font-weight: 600;
+        font-size: clamp(2.2rem, 4vw, 3.2rem);
+        line-height: 1.12;
+        margin: 0 0 20px;
+      }
+      .hero h1 em {
+        font-style: italic;
+        color: var(--brass);
+      }
+      .hero p {
+        max-width: 46ch;
+        color: var(--parchment-muted);
+        font-size: 1.02rem;
+      }
+
+      /* Specimen record card — the signature element */
+      .specimen {
+        background: var(--vellum);
+        color: var(--ink);
+        border-radius: 3px;
+        padding: 28px 26px 24px;
+        transform: rotate(1.2deg);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+        position: relative;
+        opacity: 0;
+        animation: reveal 0.7s ease-out 0.15s forwards;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .specimen {
+          animation: none;
+          opacity: 1;
+        }
+      }
+      @keyframes reveal {
+        from {
+          opacity: 0;
+          transform: rotate(1.2deg) translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: rotate(1.2deg) translateY(0);
+        }
+      }
+      .specimen-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .specimen-seal {
+        flex-shrink: 0;
+        width: 62px;
+        height: 62px;
+        margin-top: 2px;
+        border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+        background: radial-gradient(
+          circle at 34% 30%,
+          #a5393c 0%,
+          var(--seal) 55%,
+          var(--seal-dark) 100%
+        );
+        box-shadow:
+          0 4px 9px rgba(0, 0, 0, 0.45),
+          inset 0 0 0 3px rgba(0, 0, 0, 0.14),
+          inset 0 -3px 6px rgba(0, 0, 0, 0.28),
+          inset 0 2px 4px rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .specimen-seal span {
+        font-family: "Cormorant Garamond", serif;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--vellum);
+        transform: rotate(-5deg);
+      }
+      .specimen-label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--seal-dark);
+        margin-bottom: 10px;
+      }
+      .specimen h2 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.5rem;
+        margin: 0 0 3px;
+      }
+      .house-lineage {
+        font-style: italic;
+        font-size: 0.86rem;
+        color: #55523f;
+        margin: 0 0 16px;
+      }
+      .house-lineage .house-note {
+        font-size: 0.9em;
+        color: #7a7355;
+      }
+      .specimen .entry-ref {
+        font-family: "IBM Plex Mono", monospace;
+        font-style: normal;
+        font-size: 0.7em;
+        color: #8a8264;
+      }
+
+      .field-group {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.8rem;
+      }
+      .field-group + .field-group {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--vellum-line);
+      }
+      .group-label {
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--seal-dark);
+        margin-bottom: 8px;
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 3px 12px;
+        margin-bottom: 7px;
+      }
+      .field-row:last-child {
+        margin-bottom: 0;
+      }
+      .field-key {
+        color: #6b6650;
+        font-size: 0.72rem;
+      }
+      .field-val {
+        color: var(--ink);
+        font-family: "Source Sans 3", sans-serif;
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+      .field-val strong {
+        font-weight: 600;
+      }
+
+      /* ---------- Ledger tabs (audience split) ---------- */
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 8px 0 64px;
+      }
+      .tab {
+        background: rgba(239, 230, 203, 0.04);
+        border: 1px solid rgba(184, 146, 90, 0.3);
+        border-radius: 3px;
+        padding: 26px 24px;
+        text-decoration: none;
+        display: block;
+        transition:
+          border-color 0.15s ease,
+          transform 0.15s ease;
+      }
+      .tab:hover {
+        border-color: var(--brass);
+        transform: translateY(-2px);
+      }
+      .tab-eyebrow {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brass);
+        margin-bottom: 10px;
+      }
+      .tab h3 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.35rem;
+        margin: 0 0 8px;
+        color: var(--parchment-text);
+      }
+      .tab p {
+        margin: 0;
+        color: var(--parchment-muted);
+        font-size: 0.92rem;
+      }
+
+      /* ---------- Data model ---------- */
+      .model {
+        padding: 8px 0 64px;
+        border-top: 1px solid rgba(184, 146, 90, 0.25);
+      }
+      .model h2 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 48px 0 28px;
+      }
+      .model-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+      }
+      .entity {
+        border-left: 2px solid var(--brass);
+        padding-left: 14px;
+      }
+      .entity-label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--brass);
+        margin-bottom: 6px;
+      }
+      .entity h4 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.15rem;
+        margin: 0 0 6px;
+      }
+      .entity p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--parchment-muted);
+      }
+
+      /* ---------- Footer ---------- */
+      footer {
+        border-top: 1px solid rgba(184, 146, 90, 0.25);
+        padding: 32px 0 48px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 0.85rem;
+        color: var(--parchment-muted);
+      }
+      footer a {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .badges {
+        display: flex;
+        gap: 8px;
+      }
+      .badge {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        border: 1px solid rgba(184, 146, 90, 0.4);
+        border-radius: 3px;
+        padding: 3px 8px;
+      }
+
+      @media (max-width: 760px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding-top: 48px;
+        }
+        .tabs {
+          grid-template-columns: 1fr;
+        }
+        .model-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        nav a {
+          margin-left: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap">
+      <div class="header-row">
+        <div>
+          <div class="wordmark">HousePy</div>
+          <div class="tagline">A register of houses &amp; lineage</div>
+        </div>
+        <nav>
+          <a href="graph.html">Family&nbsp;Graph</a>
+          <a href="api/">API&nbsp;Docs</a>
+          <a href="https://github.com/nickwhitt/housepy">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <div>
+          <h1>Every house<br />has a <em>record.</em></h1>
+          <p>
+            HousePy models European nobility as a living graph of people,
+            titles, and successions — built for researchers who study lineage,
+            and open for contributors who want to extend it.
+          </p>
+        </div>
+
+        <div class="specimen">
+          <div class="specimen-top">
+            <div>
+              <div class="specimen-label">Entry No. 0002 — Person</div>
+              <h2>Louis I</h2>
+            </div>
+            <div class="specimen-seal" aria-hidden="true">
+              <span>Hesse</span>
+            </div>
+          </div>
+          <div class="house-lineage">
+            House of Hesse-Darmstadt
+            <span class="house-note">— cadet branch of House of Hesse</span>
+          </div>
+
+          <div class="field-group">
+            <div class="group-label">Titles</div>
+            <div class="field-row">
+              <div class="field-key">1790–1806</div>
+              <div class="field-val">
+                <strong>Landgrave of Hesse-Darmstadt</strong> (as Louis X)
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-key">1806–1830</div>
+              <div class="field-val">
+                <strong>Grand Duke of Hesse and by Rhine</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="group-label">Particulars</div>
+            <div class="field-row">
+              <div class="field-key">Born</div>
+              <div class="field-val">
+                14 June 1753, Prenzlau, Margraviate of Brandenburg
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-key">Died</div>
+              <div class="field-val">
+                6 April 1830, Darmstadt, Grand Duchy of Hesse
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-key">Father</div>
+              <div class="field-val">
+                Louis IX, Landgrave of Hesse-Darmstadt
+                <span class="entry-ref">(Entry No. 0001)</span>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-key">Mother</div>
+              <div class="field-val">
+                Caroline, Countess Palatine of Zweibrücken
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tabs">
+        <a class="tab" href="graph.html">
+          <div class="tab-eyebrow">For researchers</div>
+          <h3>Explore the family tree</h3>
+          <p>
+            An interactive graph of houses, titles, and relationships — no
+            login, no code, just browse.
+          </p>
+        </a>
+        <a class="tab" href="api/">
+          <div class="tab-eyebrow">For contributors</div>
+          <h3>Build with the API</h3>
+          <p>
+            Full OpenAPI reference for the FastAPI service backing this dataset
+            — query, extend, or integrate.
+          </p>
+        </a>
+      </section>
+
+      <section class="model">
+        <h2>The record structure</h2>
+        <div class="model-grid">
+          <div class="entity">
+            <div class="entity-label">01</div>
+            <h4>Person</h4>
+            <p>An individual, with name, birth, and death data.</p>
+          </div>
+          <div class="entity">
+            <div class="entity-label">02</div>
+            <h4>Family</h4>
+            <p>A household or dynastic grouping of people.</p>
+          </div>
+          <div class="entity">
+            <div class="entity-label">03</div>
+            <h4>Title</h4>
+            <p>
+              A Regnal or Peerage title, with creation and succession events.
+            </p>
+          </div>
+          <div class="entity">
+            <div class="entity-label">04</div>
+            <h4>Event</h4>
+            <p>
+              A dated occurrence — birth, death, ascension — with an optional
+              place.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <div>
+        Code released under MIT. Dataset released under CC BY 4.0. See
+        <a href="../CITATION.cff">CITATION.cff</a> for how to cite this project.
+      </div>
+      <div class="badges">
+        <span class="badge">MIT</span>
+        <span class="badge">CC BY 4.0</span>
+      </div>
+    </footer>
+  </body>
+</html>

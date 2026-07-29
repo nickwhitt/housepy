@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software or its accompanying dataset in your research,
+  please cite it as below.
+type: software
+title: HousePy
+abstract: >-
+  A FastAPI service and data model for tracking European nobility family
+  trees — people, titles, and lineage events, represented as a graph of
+  houses, successions, and relationships.
+authors:
+  - family-names: Whitt
+    given-names: Nick
+repository-code: "https://github.com/nickwhitt/housepy"
+license:
+  - MIT
+  - CC-BY-4.0
+version: 0.1.0
+date-released: "2026-07-29"
+keywords:
+  - genealogy
+  - peerage
+  - nobility
+  - digital-humanities
+  - graph-database
+  - fastapi
