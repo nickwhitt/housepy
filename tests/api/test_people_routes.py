@@ -1,3 +1,6 @@
+FAMILY_SLUG = "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family-1"
+
+
 def test_list_people(client):
     response = client.get("/people")
     assert response.status_code == 200
@@ -48,6 +51,32 @@ def test_include_unrecognized_type_is_inert(client):
     response = client.get("/people?include=bogus")
     assert response.status_code == 200
     assert response.json().get("included") is None
+
+
+def test_get_person_families_as_father(client):
+    response = client.get("/people/hesse-darmstadt.ludwig-ix")
+    body = response.json()["data"]
+    assert body["relationships"]["families"]["data"] == [
+        {"type": "families", "id": FAMILY_SLUG}
+    ]
+
+
+def test_get_person_families_as_child(client):
+    response = client.get("/people/hesse-darmstadt.ludwig-i")
+    body = response.json()["data"]
+    assert body["relationships"]["families"]["data"] == [
+        {"type": "families", "id": FAMILY_SLUG}
+    ]
+
+
+def test_include_families_returns_bare_resource(client):
+    response = client.get("/people/hesse-darmstadt.friederike-luise?include=families")
+    assert response.status_code == 200
+    included = response.json()["included"]
+    assert len(included) == 1
+    assert included[0]["type"] == "families"
+    assert included[0]["id"] == FAMILY_SLUG
+    assert included[0].get("relationships") is None
 
 
 def test_links_self(client):

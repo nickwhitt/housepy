@@ -28,6 +28,7 @@ class PersonAttributes(BaseModel):
 
 class PersonRelationships(BaseModel):
     titles: Relationship | None = None
+    families: Relationship | None = None
 
 
 class PersonResource(BaseModel):
@@ -108,12 +109,18 @@ def person_to_resource(
 ) -> PersonResource:
     relationships = None
     if include_relationships:
+        member_of = [
+            f for f in families if person.slug in (f.father, f.mother, *f.children)
+        ]
         relationships = PersonRelationships(
             titles=Relationship(
                 data=[
                     ResourceIdentifier(type="titles", id=t.title) for t in person.titles
                 ]
-            )
+            ),
+            families=Relationship(
+                data=[ResourceIdentifier(type="families", id=f.slug) for f in member_of]
+            ),
         )
     return PersonResource(
         id=person.slug,
@@ -175,6 +182,10 @@ def family_to_resource(
     )
 
 
+# These three builders back RESOURCE_BUILDERS, used only to build "bare"
+# `included` entries (include_relationships=False, so `relationships` comes
+# back `null` rather than omitted — an intentional signal that this
+# resource has no relationships to report here, not a missing field).
 def _build_person(slug: Slug, request: Request):
     return person_to_resource(
         find_by_slug(people, slug), request, include_relationships=False

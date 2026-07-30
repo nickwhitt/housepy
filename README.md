@@ -94,7 +94,7 @@ Format-on-save and lint auto-fixes are preconfigured for Python files. None of t
 ## Running the API
 
 ```bash
-poetry run uvicorn housepy.main:app --reload
+poetry run fastapi dev
 ```
 
 ## License
