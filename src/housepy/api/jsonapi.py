@@ -1,7 +1,5 @@
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Iterable
 
-from fastapi import Request
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -19,29 +17,22 @@ class ResourceLinks(BaseModel):
     self_link: str | None = Field(default=None, alias="self")
 
 
-class Resource(BaseModel):
-    type: str
-    id: str
-    attributes: dict[str, Any]
-    relationships: dict[str, Relationship] | None = None
-    links: ResourceLinks | None = None
+def _relationship_items(relationships: BaseModel | None) -> Iterable[Relationship]:
+    """Yield the Relationship values on any *Relationships model, regardless
+    of its concrete type (PersonRelationships, TitleRelationships, ...)."""
+    if relationships is None:
+        return []
+    return [
+        value
+        for name in type(relationships).model_fields
+        if (value := getattr(relationships, name)) is not None
+    ]
 
 
-class Document(BaseModel):
-    data: Resource | list[Resource]
-    included: list[Resource] | None = None
-
-
-def resolve_included(
-    resources: list[Resource],
-    include: str | None,
-    request: Request,
-    resource_builders: dict[str, Callable[[str, Request], Resource]],
-) -> list[Resource] | None:
-    """Resolve one level of relationship identifiers into bare resources
-    for the `included` array. Only relationship types present in both
-    `include` and `resource_builders` are resolved; no dot-path/nested
-    includes are supported (deferred — see housepy notes)."""
+def resolve_included(resources, include, request, resource_builders):
+    """Resolve one level of relationship identifiers into bare resources for
+    the `included` array. Works against any resource objects that expose a
+    `.relationships` attribute — no dependency on which resource types exist."""
     if not include:
         return None
 
@@ -49,7 +40,7 @@ def resolve_included(
     identifiers = {
         (identifier.type, identifier.id)
         for resource in resources
-        for rel in (resource.relationships or {}).values()
+        for rel in _relationship_items(resource.relationships)
         for identifier in (
             rel.data if isinstance(rel.data, list) else [rel.data] if rel.data else []
         )
