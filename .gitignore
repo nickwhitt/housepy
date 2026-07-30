@@ -224,3 +224,6 @@ __marimo__/
 
 # Claude
 CLAUDE.local.md
+
+# Generated OpenAPI export (built fresh by the Pages workflow)
+docs/api/openapi.json

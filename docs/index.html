@@ -333,6 +333,70 @@
         color: var(--parchment-muted);
       }
 
+      /* ---------- Citation ---------- */
+      .citation {
+        padding: 8px 0 56px;
+        border-top: 1px solid rgba(184, 146, 90, 0.25);
+      }
+      .citation h2 {
+        font-family: "Cormorant Garamond", serif;
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 48px 0 20px;
+      }
+      .citation-card {
+        background: rgba(239, 230, 203, 0.04);
+        border: 1px solid rgba(184, 146, 90, 0.3);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .citation-label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--brass);
+        padding: 14px 20px 0;
+      }
+      .citation-body {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 20px 18px;
+        flex-wrap: wrap;
+      }
+      .citation-text {
+        margin: 0;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.8rem;
+        color: var(--parchment-text);
+        line-height: 1.5;
+      }
+      .citation-text em {
+        font-style: italic;
+      }
+      .copy-btn {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        background: transparent;
+        color: var(--brass);
+        border: 1px solid var(--brass);
+        border-radius: 3px;
+        padding: 8px 14px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .copy-btn:hover {
+        background: var(--brass);
+        color: var(--ledger-deep);
+      }
+
       /* ---------- Footer ---------- */
       footer {
         border-top: 1px solid rgba(184, 146, 90, 0.25);
@@ -515,17 +579,49 @@
           </div>
         </div>
       </section>
+
+      <section class="citation" id="citation">
+        <h2>How to cite this project</h2>
+        <div class="citation-card">
+          <div class="citation-label">APA</div>
+          <div class="citation-body">
+            <p class="citation-text" id="citation-text">
+              Whitt, N. (2026). <em>HousePy</em> (Version 0.1.0) [Computer
+              software]. https://github.com/nickwhitt/housepy
+            </p>
+            <button class="copy-btn" id="copy-citation-btn" type="button">
+              Copy
+            </button>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="wrap">
-      <div>
-        Code released under MIT. Dataset released under CC BY 4.0. See
-        <a href="../CITATION.cff">CITATION.cff</a> for how to cite this project.
-      </div>
+      <div>Code released under MIT. Dataset released under CC BY 4.0.</div>
       <div class="badges">
         <span class="badge">MIT</span>
         <span class="badge">CC BY 4.0</span>
       </div>
     </footer>
+
+    <script>
+      document
+        .getElementById("copy-citation-btn")
+        .addEventListener("click", () => {
+          const btn = document.getElementById("copy-citation-btn");
+          const text = document
+            .getElementById("citation-text")
+            .textContent.replace(/\s+/g, " ")
+            .trim();
+          navigator.clipboard.writeText(text).then(() => {
+            const original = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => {
+              btn.textContent = original;
+            }, 1500);
+          });
+        });
+    </script>
   </body>
 </html>
