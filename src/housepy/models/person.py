@@ -4,13 +4,17 @@ from dataclasses import dataclass, field
 from housepy.models.event import Event
 from housepy.models.name import Name
 from housepy.models.title import Tenure
+from housepy.models.types import Slug
 
 
 @dataclass
 class Person:
-    """An individual, living or deceased."""
+    """An individual, living or deceased.
 
-    slug: str
+    Slug convention: `house.identifier` (e.g. `hesse-darmstadt.ludwig-i`).
+    """
+
+    slug: Slug
     name: Name
     birth: Event
     death: Event | None = None

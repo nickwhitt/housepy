@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query, Request
 from housepy.api.jsonapi import resolve_included
 from housepy.api.resources import RESOURCE_BUILDERS, TitleDocument, title_to_resource
 from housepy.data import titles
+from housepy.models.types import Slug
 from housepy.utils import find_by_slug
 
 router = APIRouter()
@@ -21,7 +22,7 @@ async def list_titles(
 
 @router.get("/{slug}", name="get_title")
 async def get_title(
-    slug: str, request: Request, include: str | None = Query(default=None)
+    slug: Slug, request: Request, include: str | None = Query(default=None)
 ) -> TitleDocument:
     resource = title_to_resource(find_by_slug(titles, slug), request)
     return TitleDocument(

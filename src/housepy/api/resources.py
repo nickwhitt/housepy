@@ -1,12 +1,20 @@
+from collections.abc import Callable
+from typing import Literal
+
 from fastapi import Request
 from pydantic import BaseModel
 
 from housepy.api.jsonapi import Relationship, ResourceIdentifier, ResourceLinks
-from housepy.data import people, titles
+from housepy.data import families, people, titles
 from housepy.models.event import Event
+from housepy.models.family import Family
 from housepy.models.name import Name
-from housepy.models.title import Tenure
+from housepy.models.person import Person
+from housepy.models.title import Tenure, Title
+from housepy.models.types import Slug
 from housepy.utils import find_by_slug
+
+type ResourceType = Literal["people", "titles", "families"]
 
 # ---------- Person ----------
 
@@ -23,8 +31,8 @@ class PersonRelationships(BaseModel):
 
 
 class PersonResource(BaseModel):
-    type: str = "people"
-    id: str
+    type: ResourceType = "people"
+    id: Slug
     attributes: PersonAttributes
     relationships: PersonRelationships | None = None
     links: ResourceLinks | None = None
@@ -43,16 +51,38 @@ class TitleRelationships(BaseModel):
 
 
 class TitleResource(BaseModel):
-    type: str = "titles"
-    id: str
+    type: ResourceType = "titles"
+    id: Slug
     attributes: TitleAttributes
     relationships: TitleRelationships | None = None
     links: ResourceLinks | None = None
 
 
+# ---------- Family ----------
+
+
+class FamilyAttributes(BaseModel):
+    married: Event | None = None
+    divorced: Event | None = None
+
+
+class FamilyRelationships(BaseModel):
+    father: Relationship | None = None
+    mother: Relationship | None = None
+    children: Relationship | None = None
+
+
+class FamilyResource(BaseModel):
+    type: ResourceType = "families"
+    id: Slug
+    attributes: FamilyAttributes
+    relationships: FamilyRelationships | None = None
+    links: ResourceLinks | None = None
+
+
 # ---------- included / documents ----------
 
-IncludedResource = PersonResource | TitleResource
+IncludedResource = PersonResource | TitleResource | FamilyResource
 
 
 class PersonDocument(BaseModel):
@@ -65,11 +95,16 @@ class TitleDocument(BaseModel):
     included: list[IncludedResource] | None = None
 
 
+class FamilyDocument(BaseModel):
+    data: FamilyResource | list[FamilyResource]
+    included: list[IncludedResource] | None = None
+
+
 # ---------- builders ----------
 
 
 def person_to_resource(
-    person, request: Request, include_relationships: bool = True
+    person: Person, request: Request, include_relationships: bool = True
 ) -> PersonResource:
     relationships = None
     if include_relationships:
@@ -94,7 +129,7 @@ def person_to_resource(
 
 
 def title_to_resource(
-    title, request: Request, include_relationships: bool = True
+    title: Title, request: Request, include_relationships: bool = True
 ) -> TitleResource:
     relationships = None
     if include_relationships:
@@ -112,16 +147,54 @@ def title_to_resource(
     )
 
 
-def _build_person(slug: str, request: Request):
+def family_to_resource(
+    family: Family, request: Request, include_relationships: bool = True
+) -> FamilyResource:
+    relationships = None
+    if include_relationships:
+        relationships = FamilyRelationships(
+            father=Relationship(
+                data=ResourceIdentifier(type="people", id=family.father)
+                if family.father
+                else None
+            ),
+            mother=Relationship(
+                data=ResourceIdentifier(type="people", id=family.mother)
+                if family.mother
+                else None
+            ),
+            children=Relationship(
+                data=[ResourceIdentifier(type="people", id=c) for c in family.children]
+            ),
+        )
+    return FamilyResource(
+        id=family.slug,
+        attributes=FamilyAttributes(married=family.married, divorced=family.divorced),
+        relationships=relationships,
+        links=ResourceLinks(self=str(request.url_for("get_family", slug=family.slug))),
+    )
+
+
+def _build_person(slug: Slug, request: Request):
     return person_to_resource(
         find_by_slug(people, slug), request, include_relationships=False
     )
 
 
-def _build_title(slug: str, request: Request):
+def _build_title(slug: Slug, request: Request):
     return title_to_resource(
         find_by_slug(titles, slug), request, include_relationships=False
     )
 
 
-RESOURCE_BUILDERS = {"people": _build_person, "titles": _build_title}
+def _build_family(slug: Slug, request: Request):
+    return family_to_resource(
+        find_by_slug(families, slug), request, include_relationships=False
+    )
+
+
+RESOURCE_BUILDERS: dict[ResourceType, Callable[[Slug, Request], IncludedResource]] = {
+    "people": _build_person,
+    "titles": _build_title,
+    "families": _build_family,
+}

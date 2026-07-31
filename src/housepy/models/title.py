@@ -2,11 +2,19 @@ from dataclasses import dataclass
 from typing import Self
 
 from housepy.models.event import Event
+from housepy.models.types import Slug
 
 
 @dataclass
 class Title:
-    slug: str
+    """A stable, shared title entity (e.g. "Landgrave of Hesse-Darmstadt").
+
+    Slug convention: `realm.office` (e.g. `hesse-darmstadt.landgrave`,
+    `england.king`) — territorial/institutional, independent of whichever
+    house/dynasty currently holds the title.
+    """
+
+    slug: Slug
     name: str
     group: str | None = None
 
@@ -16,22 +24,22 @@ class Title:
 
 @dataclass
 class Tenure:
-    title: str  # Title.slug
+    title: Slug
     start: Event
     end: Event | None = None
     ceremony: Event | None = None
     pretense: bool = False
-    regent_for: str | None = None  # Person.slug of the monarch being acted for
+    regent_for: Slug | None = None  # the monarch being acted for
 
     @classmethod
     def regnal(
         cls,
-        title: str,
+        title: Slug,
         accession: Event,
         coronation: Event | None = None,
         demise: Event | None = None,
         pretense: bool = False,
-        regent_for: str | None = None,
+        regent_for: Slug | None = None,
     ) -> Self:
         return cls(
             title=title,
@@ -45,7 +53,7 @@ class Tenure:
     @classmethod
     def peerage(
         cls,
-        title: str,
+        title: Slug,
         creation: Event,
         investiture: Event | None = None,
         extinction: Event | None = None,

@@ -1,4 +1,5 @@
 from housepy.models.event import Event
+from housepy.models.family import Family
 from housepy.models.name import Name
 from housepy.models.person import Person
 from housepy.models.title import Tenure, Title
@@ -36,4 +37,14 @@ people = [
             ),
         ],
     ),
+]
+
+families = [
+    Family(
+        "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family-1",
+        "hesse-darmstadt.ludwig-ix",
+        "hesse-darmstadt.friederike-luise",
+        ["hesse-darmstadt.ludwig-i"],
+        Event(1741, 8, 12, "Zweibrücken, Duchy of Palatinate-Zweibrücken"),
+    )
 ]

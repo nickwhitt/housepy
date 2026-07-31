@@ -12,6 +12,21 @@ HousePy models European noble houses using:
 - **Event** — dated occurrences (birth, death, ascension, etc.) with optional place
 - **Repository** — a `NetworkX`-backed graph linking people and families through shared titles and parent-child relationships
 
+### Slug conventions
+
+Every `Person`, `Title`, and `Family` has a `slug` — a unique, human-readable
+identifier used as its API id and URL path segment. These are hand-authored,
+not generated, and follow documented conventions rather than validated
+rules — uniqueness and format are on you when adding data:
+
+- **Person** — `house.identifier`, e.g. `hesse-darmstadt.ludwig-i`
+- **Title** — `realm.office`, e.g. `hesse-darmstadt.landgrave`, `england.king`
+  (territorial/institutional, independent of whichever house holds it)
+- **Family** — `{father}+{mother}+family-N`, omitting whichever parent is
+  unknown (e.g. `{father}+family-1`); if both are unknown, anchor on a known
+  child instead, or fall back to a bare `family-N`. `N` disambiguates
+  multiple families sharing the same known parent(s).
+
 ## Requirements
 
 - Python ^3.14
