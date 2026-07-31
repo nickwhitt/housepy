@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from housepy.models.event import Event
 from housepy.models.name import Name
@@ -38,3 +39,13 @@ def test_str_with_place():
 def test_str_with_name():
     event = Event(1790, 4, 6, name=Name(chosen="Ludwig X"))
     assert str(event) == "as Ludwig X, 6 Apr 1790"
+
+
+def test_invalid_year_type_raises_validation_error():
+    with pytest.raises(ValidationError):
+        Event(year="nope")  # type: ignore[arg-type]
+
+
+def test_missing_required_field_raises_validation_error():
+    with pytest.raises(ValidationError):
+        Event()  # type: ignore[call-arg]

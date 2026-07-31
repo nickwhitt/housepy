@@ -1,5 +1,7 @@
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import field
+
+from pydantic.dataclasses import dataclass
 
 from housepy.models.event import Event
 from housepy.models.name import Name

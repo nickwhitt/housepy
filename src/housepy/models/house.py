@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 
 from housepy.models.event import Event
 from housepy.models.types import Slug

@@ -11,7 +11,8 @@ requires-python = ">=3.14,!=3.14.1"
 dependencies = [
     "networkx (>=3.6.1,<4.0.0)",
     "pyvis (>=0.3.2,<0.4.0)",
-    "fastapi[standard] (>=0.140.13,<0.141.0)"
+    "fastapi[standard] (>=0.140.13,<0.141.0)",
+    "pydantic (>=2.13,<3.0)"
 ]
 
 [dependency-groups]
@@ -28,6 +29,7 @@ entrypoint = "housepy.main:app"
 
 [tool.poetry]
 packages = [{include = "housepy", from = "src"}]
+include = ["src/housepy/db/seed.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

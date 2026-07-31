@@ -1,4 +1,6 @@
+import pytest
 from freezegun import freeze_time
+from pydantic import ValidationError
 
 from housepy.models.event import Event
 from housepy.models.name import Name
@@ -33,3 +35,8 @@ def test_age_living_person():
 def test_str_delegates_to_name():
     person = _person(Event(1719, 12, 15))
     assert str(person) == str(person.name)
+
+
+def test_missing_required_fields_raises_validation_error():
+    with pytest.raises(ValidationError):
+        Person()  # type: ignore[call-arg]

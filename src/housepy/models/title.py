@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 from typing import Self
+
+from pydantic.dataclasses import dataclass
 
 from housepy.models.event import Event
 from housepy.models.types import Slug

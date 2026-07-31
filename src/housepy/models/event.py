@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 from datetime import date
 from functools import cached_property, total_ordering
+
+from pydantic.dataclasses import dataclass
 
 from housepy.models.name import Name
 

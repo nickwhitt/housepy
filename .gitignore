@@ -227,3 +227,7 @@ CLAUDE.local.md
 
 # Generated OpenAPI export (built fresh by the Pages workflow)
 docs/api/openapi.json
+
+# Local editable SQLite DB, rebuilt from src/housepy/db/seed.sql via
+# scripts/build_db.py — src/housepy/db/seed.sql is the committed artifact
+/housepy.db

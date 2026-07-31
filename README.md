@@ -31,6 +31,29 @@ than validated rules — uniqueness and format are on you when adding data:
   (this is the root of the `house.identifier` convention Person/Title slugs
   build on, so it needs no compound form of its own)
 
+### Editing the dataset
+
+The dataset lives in [`src/housepy/db/seed.sql`](src/housepy/db/seed.sql) — a
+plain-text SQL dump (schema + seed data) that's the single committed source
+of truth. The app loads it into an in-memory SQLite database on startup; it's
+never a live, persisted datastore.
+
+To add or edit records:
+
+1. `poetry run python scripts/build_db.py` — builds a local `housepy.db`
+   from `seed.sql`.
+2. Open `housepy.db` in a GUI tool such as
+   [DB Browser for SQLite](https://sqlitebrowser.org/) and make your changes.
+   Foreign key and required-field constraints are enforced live, so a bad
+   slug reference or missing field is rejected immediately, the same way a
+   type checker would catch it in code.
+3. `poetry run python scripts/dump_db.py` — regenerates `seed.sql` from your
+   edits (it aborts if `PRAGMA foreign_key_check` finds anything broken).
+   Review the diff and commit it.
+
+`housepy.db` itself is gitignored — it's a disposable local working copy,
+not something to commit.
+
 ## Requirements
 
 - Python ^3.14
