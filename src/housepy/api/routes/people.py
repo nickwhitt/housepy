@@ -9,7 +9,7 @@ from housepy.utils import find_by_slug
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", name="list_people")
 async def list_people(
     request: Request, include: str | None = Query(default=None)
 ) -> PersonDocument:

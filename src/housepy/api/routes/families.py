@@ -9,7 +9,7 @@ from housepy.utils import find_by_slug
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", name="list_families")
 async def list_families(
     request: Request, include: str | None = Query(default=None)
 ) -> FamilyDocument:

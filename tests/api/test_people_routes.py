@@ -79,6 +79,25 @@ def test_include_families_returns_bare_resource(client):
     assert included[0].get("relationships") is None
 
 
+def test_get_person_house(client):
+    response = client.get("/people/hesse-darmstadt.ludwig-ix")
+    body = response.json()["data"]
+    assert body["relationships"]["house"]["data"] == {
+        "type": "houses",
+        "id": "hesse-darmstadt",
+    }
+
+
+def test_include_house_returns_bare_resource(client):
+    response = client.get("/people/hesse-darmstadt.ludwig-ix?include=houses")
+    assert response.status_code == 200
+    included = response.json()["included"]
+    assert len(included) == 1
+    assert included[0]["type"] == "houses"
+    assert included[0]["id"] == "hesse-darmstadt"
+    assert included[0].get("relationships") is None
+
+
 def test_links_self(client):
     response = client.get("/people/hesse-darmstadt.ludwig-ix")
     self_link = response.json()["data"]["links"]["self"]

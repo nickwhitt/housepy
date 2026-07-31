@@ -9,15 +9,16 @@ HousePy models European noble houses using:
 - **Person** — individuals with name, birth, and death data
 - **Family** — household/dynastic groupings
 - **Title** — Regnal or Peerage titles, with creation/ascension and optional descent events
+- **House** — a dynasty/noble house, with optional parent house (cadet branches), founder, and founding/exile events
 - **Event** — dated occurrences (birth, death, ascension, etc.) with optional place
 - **Repository** — a `NetworkX`-backed graph linking people and families through shared titles and parent-child relationships
 
 ### Slug conventions
 
-Every `Person`, `Title`, and `Family` has a `slug` — a unique, human-readable
-identifier used as its API id and URL path segment. These are hand-authored,
-not generated, and follow documented conventions rather than validated
-rules — uniqueness and format are on you when adding data:
+Every `Person`, `Title`, `Family`, and `House` has a `slug` — a unique,
+human-readable identifier used as its API id and URL path segment. These
+are hand-authored, not generated, and follow documented conventions rather
+than validated rules — uniqueness and format are on you when adding data:
 
 - **Person** — `house.identifier`, e.g. `hesse-darmstadt.ludwig-i`
 - **Title** — `realm.office`, e.g. `hesse-darmstadt.landgrave`, `england.king`
@@ -26,6 +27,9 @@ rules — uniqueness and format are on you when adding data:
   unknown (e.g. `{father}+family-1`); if both are unknown, anchor on a known
   child instead, or fall back to a bare `family-N`. `N` disambiguates
   multiple families sharing the same known parent(s).
+- **House** — a bare identifier, e.g. `hesse-darmstadt`, `saxe-coburg-and-gotha`
+  (this is the root of the `house.identifier` convention Person/Title slugs
+  build on, so it needs no compound form of its own)
 
 ## Requirements
 

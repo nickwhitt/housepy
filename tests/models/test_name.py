@@ -1,24 +1,34 @@
 from housepy.models.name import Name
 
 
-def test_str_full_format():
-    name = Name(given="Ludwig", family="Hesse-Darmstadt", prefix="of", format=Name.FULL)
+def test_str_uses_given_when_no_chosen():
+    name = Name(given="Ludwig", family="Hesse-Darmstadt", prefix="of")
     assert str(name) == "Ludwig of Hesse-Darmstadt"
 
 
-def test_str_house_format_default():
-    name = Name(given="Ludwig", family="Hesse-Darmstadt")
-    assert str(name) == "Ludwig Hesse-Darmstadt"
-
-
-def test_str_regnal_format():
-    name = Name.regnal("Ludwig IX", family=None, given=None)
-    assert str(name) == "Ludwig IX"
-
-
-def test_str_regnal_format_with_group():
-    name = Name(chosen="Ludwig IX", group="Hesse-Darmstadt", format=Name.REGNAL)
+def test_str_prefers_chosen_over_given():
+    name = Name(given="Ludwig", chosen="Ludwig IX", family="Hesse-Darmstadt")
     assert str(name) == "Ludwig IX Hesse-Darmstadt"
+
+
+def test_str_uses_first_token_of_multi_word_given():
+    name = Name(given="Friederike Luise", family="Hesse-Darmstadt", prefix="of")
+    assert str(name) == "Friederike of Hesse-Darmstadt"
+
+
+def test_str_with_title():
+    name = Name(title="King", given="Ludwig", family="Hesse-Darmstadt")
+    assert str(name) == "King Ludwig Hesse-Darmstadt"
+
+
+def test_str_with_suffix():
+    name = Name(given="Ludwig", suffix="the Great")
+    assert str(name) == "Ludwig the Great"
+
+
+def test_str_omits_unset_parts():
+    assert str(Name(given="Ludwig")) == "Ludwig"
+    assert str(Name()) == ""
 
 
 def test_first_prefers_chosen():
@@ -34,14 +44,3 @@ def test_first_falls_back_to_given():
 def test_first_empty_when_no_names():
     name = Name()
     assert name.first == ""
-
-
-def test_regnal_factory_sets_format_and_fields():
-    name = Name.regnal("Ludwig IX", "Hesse-Darmstadt", "Ludwig")
-    assert name.format == Name.REGNAL
-    assert name.chosen == "Ludwig IX"
-    assert name.family == "Hesse-Darmstadt"
-    assert name.given == "Ludwig"
-    assert name.title is None
-    assert name.prefix is None
-    assert name.group is None

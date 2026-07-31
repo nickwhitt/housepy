@@ -26,6 +26,17 @@ def test_get_title_with_single_holder(client):
     assert holder_ids == {"hesse-darmstadt.ludwig-i"}
 
 
+def test_get_title_tenures_include_holder_and_dates(client):
+    response = client.get("/titles/hesse-darmstadt.landgrave")
+    assert response.status_code == 200
+    tenures = response.json()["data"]["attributes"]["tenures"]
+    by_person = {t["person"]: t for t in tenures}
+    assert by_person["hesse-darmstadt.ludwig-ix"]["start"]["year"] == 1768
+    assert by_person["hesse-darmstadt.ludwig-ix"]["end"] is None
+    assert by_person["hesse-darmstadt.ludwig-i"]["start"]["year"] == 1790
+    assert by_person["hesse-darmstadt.ludwig-i"]["end"]["year"] == 1806
+
+
 def test_get_title_not_found(client):
     response = client.get("/titles/does-not-exist")
     assert response.status_code == 404

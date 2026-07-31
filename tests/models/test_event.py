@@ -36,5 +36,5 @@ def test_str_with_place():
 
 
 def test_str_with_name():
-    event = Event(1790, 4, 6, name=Name.regnal("Ludwig X"))
+    event = Event(1790, 4, 6, name=Name(chosen="Ludwig X"))
     assert str(event) == "as Ludwig X, 6 Apr 1790"

@@ -19,6 +19,7 @@ class Person:
     birth: Event
     death: Event | None = None
     titles: list[Tenure] = field(default_factory=list)
+    house: Slug | None = None
 
     def __str__(self) -> str:
         return str(self.name)
