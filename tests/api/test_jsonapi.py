@@ -1,7 +1,10 @@
+from starlette.datastructures import URL
+
 from housepy.api.jsonapi import (
     Relationship,
     ResourceIdentifier,
     ResourceLinks,
+    paginate,
     resolve_included,
 )
 from housepy.api.resources import (
@@ -107,3 +110,61 @@ def test_mixed_single_and_multi_value_relationships_flatten():
 def test_resource_links_self_alias_round_trips():
     links = ResourceLinks(self="http://testserver/people/p1")
     assert links.self_link == "http://testserver/people/p1"
+
+
+def _fake_request(url="http://testserver/v1/people"):
+    # paginate() only ever touches `request.url.include_query_params`, so a
+    # bare object carrying a real starlette URL is enough — no need for a
+    # full Request/ASGI scope.
+    return type("FakeRequest", (), {"url": URL(url)})()
+
+
+def test_paginate_slices_by_page_size():
+    items = list(range(25))
+    page_items, links = paginate(items, _fake_request(), 1, 10)
+    assert page_items == items[:10]
+    assert links.next is not None
+    assert links.prev is None
+
+
+def test_paginate_middle_page_has_prev_and_next():
+    items = list(range(25))
+    page_items, links = paginate(items, _fake_request(), 2, 10)
+    assert page_items == items[10:20]
+    assert links.prev is not None
+    assert links.next is not None
+
+
+def test_paginate_last_page_has_no_next():
+    items = list(range(25))
+    page_items, links = paginate(items, _fake_request(), 3, 10)
+    assert page_items == items[20:25]
+    assert links.next is None
+    assert links.last == links.self_link
+
+
+def test_paginate_clamps_page_size_to_max():
+    items = list(range(250))
+    page_items, _ = paginate(items, _fake_request(), 1, 1000)
+    assert len(page_items) == 100  # MAX_PAGE_SIZE
+
+
+def test_paginate_clamps_page_size_below_one():
+    items = list(range(5))
+    page_items, _ = paginate(items, _fake_request(), 1, 0)
+    assert len(page_items) == 1
+
+
+def test_paginate_clamps_page_number_below_one():
+    items = list(range(5))
+    page_items, links = paginate(items, _fake_request(), -3, 10)
+    assert page_items == items
+    assert links.prev is None
+
+
+def test_paginate_empty_collection_has_no_prev_or_next():
+    page_items, links = paginate([], _fake_request(), 1, 20)
+    assert page_items == []
+    assert links.prev is None
+    assert links.next is None
+    assert links.first == links.last == links.self_link

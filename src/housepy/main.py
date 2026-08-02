@@ -1,15 +1,64 @@
+from http import HTTPStatus
 from urllib.parse import urljoin
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from housepy.api.jsonapi import ErrorDocument, ErrorObject
 from housepy.api.routes import families, houses, people, titles
 
-app = FastAPI(title="HousePy")
+JSONAPI_MEDIA_TYPE = "application/vnd.api+json"
 
-app.include_router(people.router, prefix="/people", tags=["people"])
-app.include_router(titles.router, prefix="/titles", tags=["titles"])
-app.include_router(families.router, prefix="/families", tags=["families"])
-app.include_router(houses.router, prefix="/houses", tags=["houses"])
+
+class JSONAPIResponse(JSONResponse):
+    media_type = JSONAPI_MEDIA_TYPE
+
+
+app = FastAPI(title="HousePy", default_response_class=JSONAPIResponse)
+
+app.include_router(people.router, prefix="/v1/people", tags=["people"])
+app.include_router(titles.router, prefix="/v1/titles", tags=["titles"])
+app.include_router(families.router, prefix="/v1/families", tags=["families"])
+app.include_router(houses.router, prefix="/v1/houses", tags=["houses"])
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONAPIResponse:
+    document = ErrorDocument(
+        errors=[
+            ErrorObject(
+                status=str(exc.status_code),
+                title=HTTPStatus(exc.status_code).phrase,
+                detail=str(exc.detail),
+            )
+        ]
+    )
+    return JSONAPIResponse(status_code=exc.status_code, content=document.model_dump())
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONAPIResponse:
+    document = ErrorDocument(
+        errors=[
+            ErrorObject(
+                status=str(HTTPStatus.UNPROCESSABLE_ENTITY),
+                title=HTTPStatus.UNPROCESSABLE_ENTITY.phrase,
+                detail="{}: {}".format(
+                    ".".join(str(part) for part in error["loc"]), error["msg"]
+                ),
+            )
+            for error in exc.errors()
+        ]
+    )
+    return JSONAPIResponse(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=document.model_dump()
+    )
 
 
 @app.get("/")

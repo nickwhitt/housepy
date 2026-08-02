@@ -2,11 +2,23 @@ def test_list_houses(client, make_house):
     make_house(slug="test.house-a")
     make_house(slug="test.house-b")
 
-    response = client.get("/houses")
+    response = client.get("/v1/houses")
     assert response.status_code == 200
     data = response.json()["data"]
     assert {item["id"] for item in data} == {"test.house-a", "test.house-b"}
     assert all(item["type"] == "houses" for item in data)
+
+
+def test_list_houses_paginates(client, make_house):
+    for i in range(3):
+        make_house(slug=f"test.house-{i}")
+
+    response = client.get("/v1/houses?page[size]=2")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["data"]) == 2
+    assert body["links"]["next"] is not None
+    assert body["links"]["prev"] is None
 
 
 def test_get_house_with_parent_and_founder(client, make_house, make_person, make_event):
@@ -18,7 +30,7 @@ def test_get_house_with_parent_and_founder(client, make_house, make_person, make
     )
     member = make_person(slug="test.member", house=house)
 
-    response = client.get(f"/houses/{house.slug}")
+    response = client.get(f"/v1/houses/{house.slug}")
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["attributes"]["founded"]["year"] == 1740
@@ -38,7 +50,7 @@ def test_get_house_root_has_no_parent_but_has_cadet_branch(client, make_house):
     root = make_house(slug="test.root")
     make_house(slug="test.cadet", parent=root)
 
-    response = client.get(f"/houses/{root.slug}")
+    response = client.get(f"/v1/houses/{root.slug}")
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["relationships"]["parent"]["data"] is None
@@ -48,16 +60,18 @@ def test_get_house_root_has_no_parent_but_has_cadet_branch(client, make_house):
 
 
 def test_get_house_not_found(client):
-    response = client.get("/houses/does-not-exist")
+    response = client.get("/v1/houses/does-not-exist")
     assert response.status_code == 404
-    assert response.json()["detail"] == "not found"
+    assert response.json()["errors"] == [
+        {"status": "404", "title": "Not Found", "detail": "not found"}
+    ]
 
 
 def test_include_houses_returns_bare_parent(client, make_house):
     parent = make_house(slug="test.parent-house")
     house = make_house(slug="test.house", parent=parent)
 
-    response = client.get(f"/houses/{house.slug}?include=houses")
+    response = client.get(f"/v1/houses/{house.slug}?include=houses")
     assert response.status_code == 200
     included = response.json()["included"]
     assert len(included) == 1
@@ -69,6 +83,6 @@ def test_include_houses_returns_bare_parent(client, make_house):
 def test_links_self(client, make_house):
     house = make_house(slug="test.house")
 
-    response = client.get(f"/houses/{house.slug}")
+    response = client.get(f"/v1/houses/{house.slug}")
     self_link = response.json()["data"]["links"]["self"]
-    assert self_link.endswith(f"/houses/{house.slug}")
+    assert self_link.endswith(f"/v1/houses/{house.slug}")

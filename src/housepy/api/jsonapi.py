@@ -1,6 +1,10 @@
 from collections.abc import Iterable
 
+from fastapi import Request
 from pydantic import BaseModel, ConfigDict, Field
+
+MAX_PAGE_SIZE = 100
+DEFAULT_PAGE_SIZE = 20
 
 
 class ResourceIdentifier(BaseModel):
@@ -15,6 +19,62 @@ class Relationship(BaseModel):
 class ResourceLinks(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     self_link: str | None = Field(default=None, alias="self")
+
+
+class DocumentLinks(BaseModel):
+    """Top-level pagination links for a list response — `first`/`prev`/`next`/`last`
+    are omitted (not null) when they don't apply, e.g. no `prev` on page 1."""
+
+    model_config = ConfigDict(populate_by_name=True)
+    self_link: str | None = Field(default=None, alias="self")
+    first: str | None = None
+    prev: str | None = None
+    next: str | None = None
+    last: str | None = None
+
+
+class ErrorObject(BaseModel):
+    status: str
+    title: str
+    detail: str | None = None
+
+
+class ErrorDocument(BaseModel):
+    errors: list[ErrorObject]
+
+
+def paginate[T](
+    items: list[T], request: Request, page_number: int, page_size: int
+) -> tuple[list[T], DocumentLinks]:
+    """Clamp the requested page[number]/page[size] (forgiving, not a 422 — out-of-range
+    values are pulled back into range rather than rejected), slice `items`, and build
+    the matching top-level pagination links."""
+    page_size = max(1, min(page_size, MAX_PAGE_SIZE))
+    page_number = max(1, page_number)
+    total = len(items)
+    last_page = max(1, -(-total // page_size))  # ceil division
+
+    start = (page_number - 1) * page_size
+    page_items = items[start : start + page_size]
+
+    def url_for_page(page: int) -> str:
+        return str(
+            request.url.include_query_params(
+                **{
+                    "page[number]": page,
+                    "page[size]": page_size,
+                }
+            )
+        )
+
+    links = DocumentLinks(
+        self=url_for_page(page_number),
+        first=url_for_page(1),
+        prev=url_for_page(page_number - 1) if page_number > 1 else None,
+        next=url_for_page(page_number + 1) if page_number < last_page else None,
+        last=url_for_page(last_page),
+    )
+    return page_items, links
 
 
 def _relationship_items(relationships: BaseModel | None) -> Iterable[Relationship]:

@@ -5,7 +5,12 @@ from fastapi import Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from housepy.api.jsonapi import Relationship, ResourceIdentifier, ResourceLinks
+from housepy.api.jsonapi import (
+    DocumentLinks,
+    Relationship,
+    ResourceIdentifier,
+    ResourceLinks,
+)
 from housepy.db import loader
 from housepy.models.event import Event
 from housepy.models.family import Family
@@ -125,21 +130,25 @@ IncludedResource = PersonResource | TitleResource | FamilyResource | HouseResour
 class PersonDocument(BaseModel):
     data: PersonResource | list[PersonResource]
     included: list[IncludedResource] | None = None
+    links: DocumentLinks | None = None
 
 
 class TitleDocument(BaseModel):
     data: TitleResource | list[TitleResource]
     included: list[IncludedResource] | None = None
+    links: DocumentLinks | None = None
 
 
 class FamilyDocument(BaseModel):
     data: FamilyResource | list[FamilyResource]
     included: list[IncludedResource] | None = None
+    links: DocumentLinks | None = None
 
 
 class HouseDocument(BaseModel):
     data: HouseResource | list[HouseResource]
     included: list[IncludedResource] | None = None
+    links: DocumentLinks | None = None
 
 
 # ---------- builders ----------
