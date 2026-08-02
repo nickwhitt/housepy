@@ -1,0 +1,137 @@
+"""SQLAlchemy declarative schema, mirroring the domain model but not identical to
+it — see the Datastore section of the project README for the rationale (surrogate
+`events`/`tenures` ids, flattened `Name` columns, etc). Deliberately no
+`relationship()` — every query in `loader.py` is an explicit `select()`, so there is
+no ORM object graph to keep in sync with the domain dataclasses in `models/`.
+"""
+
+from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class EventTable(Base):
+    __tablename__ = "events"
+    __table_args__ = (
+        CheckConstraint("month BETWEEN 0 AND 12", name="ck_events_month"),
+        CheckConstraint("day BETWEEN 0 AND 31", name="ck_events_day"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    year: Mapped[int]
+    month: Mapped[int] = mapped_column(default=0)
+    day: Mapped[int] = mapped_column(default=0)
+    place: Mapped[str | None]
+    name_given: Mapped[str | None]
+    name_family: Mapped[str | None]
+    name_prefix: Mapped[str | None]
+    name_chosen: Mapped[str | None]
+    name_title: Mapped[str | None]
+    name_suffix: Mapped[str | None]
+
+
+class HouseTable(Base):
+    __tablename__ = "houses"
+
+    slug: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    parent_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
+    )
+    founder_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+    founded_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    exiled_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+
+
+class TitleTable(Base):
+    __tablename__ = "titles"
+
+    slug: Mapped[str] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    group_name: Mapped[str | None]
+
+
+class PersonTable(Base):
+    __tablename__ = "people"
+
+    slug: Mapped[str] = mapped_column(primary_key=True)
+    name_given: Mapped[str | None]
+    name_family: Mapped[str | None]
+    name_prefix: Mapped[str | None]
+    name_chosen: Mapped[str | None]
+    name_title: Mapped[str | None]
+    name_suffix: Mapped[str | None]
+    birth_event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    death_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    house_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
+    )
+
+
+class TenureTable(Base):
+    __tablename__ = "tenures"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    person_slug: Mapped[str] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+    title_slug: Mapped[str] = mapped_column(
+        ForeignKey("titles.slug", deferrable=True, initially="DEFERRED")
+    )
+    start_event_id: Mapped[int] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    end_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    ceremony_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    pretense: Mapped[bool] = mapped_column(default=False)
+    regent_for_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+
+
+class FamilyTable(Base):
+    __tablename__ = "families"
+
+    slug: Mapped[str] = mapped_column(primary_key=True)
+    father_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+    mother_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+    married_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+    divorced_event_id: Mapped[int | None] = mapped_column(
+        ForeignKey("events.id", deferrable=True, initially="DEFERRED")
+    )
+
+
+class FamilyChildTable(Base):
+    __tablename__ = "family_children"
+    __table_args__ = (PrimaryKeyConstraint("family_slug", "child_slug"),)
+
+    family_slug: Mapped[str] = mapped_column(
+        ForeignKey("families.slug", deferrable=True, initially="DEFERRED")
+    )
+    child_slug: Mapped[str] = mapped_column(
+        ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
+    )
+    position: Mapped[int]

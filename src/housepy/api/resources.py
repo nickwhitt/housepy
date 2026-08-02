@@ -3,9 +3,10 @@ from typing import Literal
 
 from fastapi import Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from housepy.api.jsonapi import Relationship, ResourceIdentifier, ResourceLinks
-from housepy.data import families, houses, people, titles
+from housepy.db import loader
 from housepy.models.event import Event
 from housepy.models.family import Family
 from housepy.models.house import House
@@ -13,7 +14,6 @@ from housepy.models.name import Name
 from housepy.models.person import Person
 from housepy.models.title import Tenure, Title
 from housepy.models.types import Slug
-from housepy.utils import find_by_slug
 
 type ResourceType = Literal["people", "titles", "families", "houses"]
 
@@ -146,13 +146,14 @@ class HouseDocument(BaseModel):
 
 
 def person_to_resource(
-    person: Person, request: Request, include_relationships: bool = True
+    person: Person,
+    session: Session,
+    request: Request,
+    include_relationships: bool = True,
 ) -> PersonResource:
     relationships = None
     if include_relationships:
-        member_of = [
-            f for f in families if person.slug in (f.father, f.mother, *f.children)
-        ]
+        member_of = loader.families_for_person(session, person.slug)
         relationships = PersonRelationships(
             titles=Relationship(
                 data=[
@@ -182,24 +183,22 @@ def person_to_resource(
 
 
 def title_to_resource(
-    title: Title, request: Request, include_relationships: bool = True
+    title: Title, session: Session, request: Request, include_relationships: bool = True
 ) -> TitleResource:
     tenures = [
         TitleHolding(
-            person=p.slug,
+            person=person_slug,
             start=t.start,
             end=t.end,
             ceremony=t.ceremony,
             pretense=t.pretense,
             regent_for=t.regent_for,
         )
-        for p in people
-        for t in p.titles
-        if t.title == title.slug
+        for person_slug, t in loader.tenures_for_title(session, title.slug)
     ]
     relationships = None
     if include_relationships:
-        holders = [p for p in people if any(t.title == title.slug for t in p.titles)]
+        holders = loader.holders_for_title(session, title.slug)
         relationships = TitleRelationships(
             holders=Relationship(
                 data=[ResourceIdentifier(type="people", id=p.slug) for p in holders]
@@ -242,12 +241,12 @@ def family_to_resource(
 
 
 def house_to_resource(
-    house: House, request: Request, include_relationships: bool = True
+    house: House, session: Session, request: Request, include_relationships: bool = True
 ) -> HouseResource:
     relationships = None
     if include_relationships:
-        cadet_branches = [h for h in houses if h.parent == house.slug]
-        members = [p for p in people if p.house == house.slug]
+        cadet_branches = loader.cadet_branches(session, house.slug)
+        members = loader.members_of_house(session, house.slug)
         relationships = HouseRelationships(
             parent=Relationship(
                 data=ResourceIdentifier(type="houses", id=house.parent)
@@ -282,31 +281,36 @@ def house_to_resource(
 # `included` entries (include_relationships=False, so `relationships` comes
 # back `null` rather than omitted — an intentional signal that this
 # resource has no relationships to report here, not a missing field).
-def _build_person(slug: Slug, request: Request):
+def _build_person(slug: Slug, session: Session, request: Request):
     return person_to_resource(
-        find_by_slug(people, slug), request, include_relationships=False
+        loader.fetch_person(session, slug),
+        session,
+        request,
+        include_relationships=False,
     )
 
 
-def _build_title(slug: Slug, request: Request):
+def _build_title(slug: Slug, session: Session, request: Request):
     return title_to_resource(
-        find_by_slug(titles, slug), request, include_relationships=False
+        loader.fetch_title(session, slug), session, request, include_relationships=False
     )
 
 
-def _build_family(slug: Slug, request: Request):
+def _build_family(slug: Slug, session: Session, request: Request):
     return family_to_resource(
-        find_by_slug(families, slug), request, include_relationships=False
+        loader.fetch_family(session, slug), request, include_relationships=False
     )
 
 
-def _build_house(slug: Slug, request: Request):
+def _build_house(slug: Slug, session: Session, request: Request):
     return house_to_resource(
-        find_by_slug(houses, slug), request, include_relationships=False
+        loader.fetch_house(session, slug), session, request, include_relationships=False
     )
 
 
-RESOURCE_BUILDERS: dict[ResourceType, Callable[[Slug, Request], IncludedResource]] = {
+RESOURCE_BUILDERS: dict[
+    ResourceType, Callable[[Slug, Session, Request], IncludedResource]
+] = {
     "people": _build_person,
     "titles": _build_title,
     "families": _build_family,

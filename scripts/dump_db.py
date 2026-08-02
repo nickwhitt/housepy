@@ -5,12 +5,11 @@ from pathlib import Path
 DB_PATH = Path("housepy.db")
 SEED_PATH = Path("src/housepy/db/seed.sql")
 
-# CREATE TABLE and INSERT statements are both emitted in this order so every
-# FK target table already exists as a schema object by the time its child
-# table's rows are inserted. Deferred FK checking (DEFERRABLE INITIALLY
-# DEFERRED) only defers the row-level check to COMMIT — the referenced
-# table still has to exist when the INSERT runs, which iterdump()'s default
-# alphabetical-per-table ordering doesn't guarantee.
+# INSERT statements are emitted in this order for readable, stable diffs —
+# schema/table creation now lives in db/tables.py, not this file, so the
+# original "FK target table must already exist as a schema object" ordering
+# constraint no longer applies here. Kept as a fixed order anyway rather than
+# iterdump()'s default alphabetical-per-table ordering.
 TABLE_ORDER = [
     "events",
     "houses",
@@ -32,12 +31,6 @@ def main() -> None:
             print(f"  {row}")
         sys.exit(1)
 
-    schema_by_table = dict(
-        conn.execute(
-            "SELECT name, sql FROM sqlite_master "
-            "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-        ).fetchall()
-    )
     inserts_by_table: dict[str, list[str]] = {table: [] for table in TABLE_ORDER}
     for line in conn.iterdump():
         for table in TABLE_ORDER:
@@ -46,11 +39,7 @@ def main() -> None:
                 break
     conn.close()
 
-    lines = ["PRAGMA foreign_keys = ON;", ""]
-    for table in TABLE_ORDER:
-        lines.append(schema_by_table[table] + ";")
-        lines.append("")
-    lines.append("BEGIN TRANSACTION;")
+    lines = ["BEGIN TRANSACTION;"]
     for table in TABLE_ORDER:
         lines.extend(inserts_by_table[table])
     lines.append("COMMIT;")

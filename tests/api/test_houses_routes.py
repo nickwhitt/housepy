@@ -1,39 +1,49 @@
-def test_list_houses(client):
+def test_list_houses(client, make_house):
+    make_house(slug="test.house-a")
+    make_house(slug="test.house-b")
+
     response = client.get("/houses")
     assert response.status_code == 200
     data = response.json()["data"]
-    assert len(data) == 2
+    assert {item["id"] for item in data} == {"test.house-a", "test.house-b"}
     assert all(item["type"] == "houses" for item in data)
 
 
-def test_get_house_with_parent_and_founder(client):
-    response = client.get("/houses/hesse-darmstadt")
+def test_get_house_with_parent_and_founder(client, make_house, make_person, make_event):
+    parent = make_house(slug="test.parent-house")
+    founder = make_person(slug="test.founder")
+    founded = make_event(year=1740)
+    house = make_house(
+        slug="test.house", parent=parent, founder=founder, founded=founded
+    )
+    member = make_person(slug="test.member", house=house)
+
+    response = client.get(f"/houses/{house.slug}")
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["attributes"]["founded"]["year"] == 1740
     assert body["relationships"]["parent"]["data"] == {
         "type": "houses",
-        "id": "hesse",
+        "id": "test.parent-house",
     }
     assert body["relationships"]["founder"]["data"] == {
         "type": "people",
-        "id": "hesse-darmstadt.ludwig-ix",
+        "id": "test.founder",
     }
     ids = {item["id"] for item in body["relationships"]["members"]["data"]}
-    assert ids == {
-        "hesse-darmstadt.ludwig-ix",
-        "hesse-darmstadt.friederike-luise",
-        "hesse-darmstadt.ludwig-i",
-    }
+    assert ids == {member.slug}
 
 
-def test_get_house_root_has_no_parent_but_has_cadet_branch(client):
-    response = client.get("/houses/hesse")
+def test_get_house_root_has_no_parent_but_has_cadet_branch(client, make_house):
+    root = make_house(slug="test.root")
+    make_house(slug="test.cadet", parent=root)
+
+    response = client.get(f"/houses/{root.slug}")
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["relationships"]["parent"]["data"] is None
     assert body["relationships"]["cadet_branches"]["data"] == [
-        {"type": "houses", "id": "hesse-darmstadt"}
+        {"type": "houses", "id": "test.cadet"}
     ]
 
 
@@ -43,17 +53,22 @@ def test_get_house_not_found(client):
     assert response.json()["detail"] == "not found"
 
 
-def test_include_houses_returns_bare_parent(client):
-    response = client.get("/houses/hesse-darmstadt?include=houses")
+def test_include_houses_returns_bare_parent(client, make_house):
+    parent = make_house(slug="test.parent-house")
+    house = make_house(slug="test.house", parent=parent)
+
+    response = client.get(f"/houses/{house.slug}?include=houses")
     assert response.status_code == 200
     included = response.json()["included"]
     assert len(included) == 1
     assert included[0]["type"] == "houses"
-    assert included[0]["id"] == "hesse"
+    assert included[0]["id"] == "test.parent-house"
     assert included[0].get("relationships") is None
 
 
-def test_links_self(client):
-    response = client.get("/houses/hesse-darmstadt")
+def test_links_self(client, make_house):
+    house = make_house(slug="test.house")
+
+    response = client.get(f"/houses/{house.slug}")
     self_link = response.json()["data"]["links"]["self"]
-    assert self_link.endswith("/houses/hesse-darmstadt")
+    assert self_link.endswith(f"/houses/{house.slug}")

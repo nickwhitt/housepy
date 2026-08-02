@@ -42,7 +42,7 @@ def _title_resource(slug, holder_slugs):
 
 def _fake_builders(calls):
     def build(type_):
-        def _build(id_, request):
+        def _build(id_, session, request):
             calls.append((type_, id_))
             return {"type": type_, "id": id_}
 
@@ -53,14 +53,14 @@ def _fake_builders(calls):
 
 def test_no_include_returns_none():
     resources = [_person_resource("p1", ["t1"])]
-    assert resolve_included(resources, None, None, _fake_builders([])) is None
-    assert resolve_included(resources, "", None, _fake_builders([])) is None
+    assert resolve_included(resources, None, None, _fake_builders([]), None) is None
+    assert resolve_included(resources, "", None, _fake_builders([]), None) is None
 
 
 def test_single_type_resolves_matching_identifiers():
     resources = [_person_resource("p1", ["t1"])]
     calls = []
-    result = resolve_included(resources, "titles", None, _fake_builders(calls))
+    result = resolve_included(resources, "titles", None, _fake_builders(calls), None)
     assert calls == [("titles", "t1")]
     assert result == [{"type": "titles", "id": "t1"}]
 
@@ -71,13 +71,13 @@ def test_duplicate_identifiers_deduped():
         _person_resource("p2", ["t1"]),
     ]
     calls = []
-    resolve_included(resources, "titles", None, _fake_builders(calls))
+    resolve_included(resources, "titles", None, _fake_builders(calls), None)
     assert calls == [("titles", "t1")]
 
 
 def test_unmatched_include_returns_none():
     resources = [_person_resource("p1", ["t1"])]
-    result = resolve_included(resources, "nonexistent", None, _fake_builders([]))
+    result = resolve_included(resources, "nonexistent", None, _fake_builders([]), None)
     assert result is None
 
 
@@ -86,7 +86,7 @@ def test_resource_with_no_relationships_is_skipped():
         id="p1", attributes=PersonAttributes(name=Name(), birth=Event(1900))
     )
     assert resource.relationships is None
-    result = resolve_included([resource], "titles", None, _fake_builders([]))
+    result = resolve_included([resource], "titles", None, _fake_builders([]), None)
     assert result is None
 
 
@@ -96,7 +96,9 @@ def test_mixed_single_and_multi_value_relationships_flatten():
         _title_resource("t2", ["p2", "p3"]),
     ]
     calls = []
-    result = resolve_included(resources, "titles,people", None, _fake_builders(calls))
+    result = resolve_included(
+        resources, "titles,people", None, _fake_builders(calls), None
+    )
     assert set(calls) == {("titles", "t1"), ("people", "p2"), ("people", "p3")}
     assert result is not None
     assert len(result) == 3

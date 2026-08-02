@@ -29,7 +29,7 @@ def _relationship_items(relationships: BaseModel | None) -> Iterable[Relationshi
     ]
 
 
-def resolve_included(resources, include, request, resource_builders):
+def resolve_included(resources, include, request, resource_builders, session):
     """Resolve one level of relationship identifiers into bare resources for
     the `included` array. Works against any resource objects that expose a
     `.relationships` attribute — no dependency on which resource types exist."""
@@ -48,7 +48,7 @@ def resolve_included(resources, include, request, resource_builders):
     }
 
     built = [
-        resource_builders[type_](id_, request)
+        resource_builders[type_](id_, session, request)
         for type_, id_ in identifiers
         if type_ in resource_builders
     ]

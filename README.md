@@ -34,9 +34,11 @@ than validated rules — uniqueness and format are on you when adding data:
 ### Editing the dataset
 
 The dataset lives in [`src/housepy/db/seed.sql`](src/housepy/db/seed.sql) — a
-plain-text SQL dump (schema + seed data) that's the single committed source
-of truth. The app loads it into an in-memory SQLite database on startup; it's
-never a live, persisted datastore.
+plain-text SQL dump of the seed data (just `INSERT`s) that's the single
+committed source of truth for content; the schema itself is defined in
+[`src/housepy/db/tables.py`](src/housepy/db/tables.py) as SQLAlchemy models.
+The app builds the schema and loads the seed data into an in-memory SQLite
+database on startup; it's never a live, persisted datastore.
 
 To add or edit records:
 

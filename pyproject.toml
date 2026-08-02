@@ -12,7 +12,8 @@ dependencies = [
     "networkx (>=3.6.1,<4.0.0)",
     "pyvis (>=0.3.2,<0.4.0)",
     "fastapi[standard] (>=0.140.13,<0.141.0)",
-    "pydantic (>=2.13,<3.0)"
+    "pydantic (>=2.13,<3.0)",
+    "sqlalchemy (>=2.0.51,<3.0.0)"
 ]
 
 [dependency-groups]
@@ -42,6 +43,15 @@ select = [
     "UP",      # pyupgrade
     "B"        # flake8-bugbear
 ]
+
+# B008 (function call in argument default) is meant to catch accidental mutable
+# defaults, but its heuristic for recognizing idiomatic FastAPI route signatures
+# breaks once a `Depends(...)`-typed parameter's annotation isn't a type ruff
+# already knows (e.g. `sqlalchemy.orm.Session`) — it then flags the `Depends`
+# call itself, which is the correct, intended FastAPI pattern. Exempt it
+# explicitly rather than working around ruff's detection.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
