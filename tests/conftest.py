@@ -70,8 +70,9 @@ def client(api_session):
 
 @pytest.fixture
 def make_event(api_session):
-    def _make_event(*, year=1900, month=0, day=0, place=None):
-        event = EventTable(year=year, month=month, day=day, place=place)
+    def _make_event(*, slug=None, year=1900, month=0, day=0, place=None):
+        slug = slug or f"test.event-{next(_slug_counter)}"
+        event = EventTable(slug=slug, year=year, month=month, day=day, place=place)
         api_session.add(event)
         api_session.flush()
         return event
@@ -96,8 +97,8 @@ def make_house(api_session):
             name=name,
             parent_slug=parent.slug if parent else None,
             founder_slug=founder.slug if founder else None,
-            founded_event_id=founded.id if founded else None,
-            exiled_event_id=exiled.id if exiled else None,
+            founded_event_slug=founded.slug if founded else None,
+            exiled_event_slug=exiled.slug if exiled else None,
         )
         api_session.add(house)
         api_session.flush()
@@ -140,8 +141,8 @@ def make_person(api_session, make_event):
             name_family=family,
             name_prefix=prefix,
             name_chosen=chosen,
-            birth_event_id=birth.id,
-            death_event_id=death.id if death else None,
+            birth_event_slug=birth.slug,
+            death_event_slug=death.slug if death else None,
             house_slug=house.slug if house else None,
             sex=sex,
         )
@@ -168,9 +169,9 @@ def make_tenure(api_session, make_event):
         tenure = TenureTable(
             person_slug=person.slug,
             title_slug=title.slug,
-            start_event_id=start.id,
-            end_event_id=end.id if end else None,
-            ceremony_event_id=ceremony.id if ceremony else None,
+            start_event_slug=start.slug,
+            end_event_slug=end.slug if end else None,
+            ceremony_event_slug=ceremony.slug if ceremony else None,
             pretense=pretense,
             regent_for_slug=regent_for.slug if regent_for else None,
         )
@@ -197,8 +198,8 @@ def make_family(api_session):
             slug=slug,
             father_slug=father.slug if father else None,
             mother_slug=mother.slug if mother else None,
-            married_event_id=married.id if married else None,
-            divorced_event_id=divorced.id if divorced else None,
+            married_event_slug=married.slug if married else None,
+            divorced_event_slug=divorced.slug if divorced else None,
         )
         api_session.add(family)
         api_session.flush()

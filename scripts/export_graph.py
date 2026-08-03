@@ -146,6 +146,10 @@ def _add_family_node(
 def build_graph(
     people: dict[str, Person], titles: dict[str, Title], families: list[Family]
 ) -> MultiDiGraph:
+    # Walks families only; a Person who is nobody's parent/child in any
+    # Family row is never added (nor are their titles, since those edges
+    # are also only built inside _add_person_node). Not handled: every
+    # person in this dataset is expected to appear in at least one Family.
     graph = MultiDiGraph()
     for family in families:
         _add_family_node(graph, family, people, titles)

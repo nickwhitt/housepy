@@ -65,6 +65,14 @@ To add or edit records:
    edits (it aborts if `PRAGMA foreign_key_check` finds anything broken).
    Review the diff and commit it.
 
+`events` rows also need a hand-authored slug — it's a database-only key (not
+an API id or URL segment, since `Event` isn't its own resource) used just to
+keep `birth_event_slug`/`start_event_slug`/etc. foreign keys readable in a
+diff. Convention: `{owning-slug}+{role}`, e.g.
+`hesse-darmstadt.ludwig-i+birth`, `hesse-darmstadt+founded`; for a title
+tenure's start/end/ceremony, `{person.slug}+{title.slug}+{role}`, e.g.
+`hesse-darmstadt.ludwig-i+hesse-darmstadt.landgrave+start`.
+
 `housepy.db` itself is gitignored — it's a disposable local working copy,
 not something to commit.
 
