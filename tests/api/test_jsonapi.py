@@ -1,3 +1,6 @@
+from typing import cast
+
+from fastapi import Request
 from starlette.datastructures import URL
 
 from housepy.api.jsonapi import (
@@ -112,11 +115,12 @@ def test_resource_links_self_alias_round_trips():
     assert links.self_link == "http://testserver/people/p1"
 
 
-def _fake_request(url="http://testserver/v1/people"):
+def _fake_request(url="http://testserver/v1/people") -> Request:
     # paginate() only ever touches `request.url.include_query_params`, so a
     # bare object carrying a real starlette URL is enough — no need for a
-    # full Request/ASGI scope.
-    return type("FakeRequest", (), {"url": URL(url)})()
+    # full Request/ASGI scope. The cast is the one place that's asserted;
+    # callers get a real Request type, not Any.
+    return cast(Request, type("FakeRequest", (), {"url": URL(url)})())
 
 
 def test_paginate_slices_by_page_size():

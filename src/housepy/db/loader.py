@@ -8,6 +8,7 @@ routes use to call them.
 
 from collections.abc import Generator
 from importlib import resources
+from typing import cast
 
 from fastapi import HTTPException, status
 from sqlalchemy import Engine, create_engine, event, or_, select
@@ -30,7 +31,7 @@ from housepy.models.house import House
 from housepy.models.name import Name
 from housepy.models.person import Person
 from housepy.models.title import Tenure, Title
-from housepy.models.types import Slug
+from housepy.models.types import Sex, Slug
 
 _engine: Engine | None = None
 
@@ -149,6 +150,11 @@ def _person_from_row(
         death=_event_or_none(events, row.death_event_id),
         titles=_tenures_for_person(session, events, row.slug),
         house=row.house_slug,
+        # PersonTable.sex is a plain `str | None` column — tables.py deliberately
+        # doesn't mirror domain-level types (see its module docstring), so the
+        # narrowing to Sex is only visible via the DB's own `ck_people_sex`
+        # CheckConstraint, not to the type checker.
+        sex=cast(Sex | None, row.sex),
     )
 
 

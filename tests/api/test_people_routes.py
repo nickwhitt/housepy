@@ -9,6 +9,22 @@ def test_list_people(client, make_person):
     assert all(item["type"] == "people" for item in data)
 
 
+def test_get_person_exposes_sex(client, make_person):
+    person = make_person(slug="test.alice", sex="female")
+
+    response = client.get(f"/v1/people/{person.slug}")
+    assert response.status_code == 200
+    assert response.json()["data"]["attributes"]["sex"] == "female"
+
+
+def test_get_person_sex_defaults_to_none(client, make_person):
+    person = make_person(slug="test.alice")
+
+    response = client.get(f"/v1/people/{person.slug}")
+    assert response.status_code == 200
+    assert response.json()["data"]["attributes"]["sex"] is None
+
+
 def test_list_people_paginates(client, make_person):
     for i in range(3):
         make_person(slug=f"test.person-{i}")

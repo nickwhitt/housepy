@@ -62,6 +62,9 @@ class TitleTable(Base):
 
 class PersonTable(Base):
     __tablename__ = "people"
+    __table_args__ = (
+        CheckConstraint("sex IN ('male', 'female')", name="ck_people_sex"),
+    )
 
     slug: Mapped[str] = mapped_column(primary_key=True)
     name_given: Mapped[str | None]
@@ -79,6 +82,7 @@ class PersonTable(Base):
     house_slug: Mapped[str | None] = mapped_column(
         ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
     )
+    sex: Mapped[str | None] = mapped_column(default=None)
 
 
 class TenureTable(Base):

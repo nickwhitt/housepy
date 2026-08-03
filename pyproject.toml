@@ -1,6 +1,6 @@
 [project]
 name = "housepy"
-version = "0.1.0"
+version = "1.0.0"
 description = "Genealogy and peerage tracking for European nobility, built on FastAPI + NetworkX"
 authors = [
     {name = "Nick Whitt",email = "nick.whitt@pm.me"}
@@ -22,7 +22,8 @@ dev = [
     "pytest (>=9.1.1,<10.0.0)",
     "freezegun (>=1.5.5,<2.0.0)",
     "httpx2 (>=2.9.1,<3.0.0)",
-    "ruff (>=0.16.0,<0.17.0)"
+    "ruff (>=0.16.0,<0.17.0)",
+    "pyright (>=1.1.411,<2.0.0)"
 ]
 
 [tool.fastapi]
@@ -34,6 +35,13 @@ include = ["src/housepy/db/seed.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "scripts", "tests"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
 
 [tool.ruff.lint]
 select = [

@@ -132,6 +132,7 @@ def make_person(api_session, make_event):
         birth=None,
         death=None,
         house=None,
+        sex=None,
     ):
         slug = slug or f"test.person-{next(_slug_counter)}"
         birth = birth or make_event(year=1900)
@@ -144,6 +145,7 @@ def make_person(api_session, make_event):
             birth_event_id=birth.id,
             death_event_id=death.id if death else None,
             house_slug=house.slug if house else None,
+            sex=sex,
         )
         api_session.add(person)
         api_session.flush()

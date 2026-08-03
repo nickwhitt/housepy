@@ -36,7 +36,7 @@ def test_seed_row_counts():
     engine = _build_engine()
     with engine.connect() as conn:
         counts = {
-            table: conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+            table: conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
             for table in minimums
         }
     for table, minimum in minimums.items():

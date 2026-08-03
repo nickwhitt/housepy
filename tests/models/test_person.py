@@ -40,3 +40,24 @@ def test_str_delegates_to_name():
 def test_missing_required_fields_raises_validation_error():
     with pytest.raises(ValidationError):
         Person()  # type: ignore[call-arg]
+
+
+def test_sex_defaults_to_none():
+    person = _person(Event(1719, 12, 15))
+    assert person.sex is None
+
+
+@pytest.mark.parametrize("sex", ["male", "female"])
+def test_sex_accepts_known_values(sex):
+    person = Person("test.person", Name(given="Test"), Event(1719, 12, 15), sex=sex)
+    assert person.sex == sex
+
+
+def test_sex_rejects_unknown_value():
+    with pytest.raises(ValidationError):
+        Person(
+            "test.person",
+            Name(given="Test"),
+            Event(1719, 12, 15),
+            sex="unknown",  # type: ignore[arg-type]
+        )

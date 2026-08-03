@@ -15,8 +15,8 @@ repository-code: "https://github.com/nickwhitt/housepy"
 license:
   - MIT
   - CC-BY-4.0
-version: 0.1.0
-date-released: "2026-07-29"
+version: 1.0.0
+date-released: "2026-08-03"
 keywords:
   - genealogy
   - peerage

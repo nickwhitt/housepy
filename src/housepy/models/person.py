@@ -6,7 +6,7 @@ from pydantic.dataclasses import dataclass
 from housepy.models.event import Event
 from housepy.models.name import Name
 from housepy.models.title import Tenure
-from housepy.models.types import Slug
+from housepy.models.types import Sex, Slug
 
 
 @dataclass
@@ -22,6 +22,7 @@ class Person:
     death: Event | None = None
     titles: list[Tenure] = field(default_factory=list)
     house: Slug | None = None
+    sex: Sex | None = None
 
     def __str__(self) -> str:
         return str(self.name)

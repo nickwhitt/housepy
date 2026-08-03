@@ -31,6 +31,7 @@ def test_person_fields_round_trip(session):
     )
     assert ludwig_ix.death == Event(1790, 4, 6)
     assert ludwig_ix.house == "hesse-darmstadt"
+    assert ludwig_ix.sex == "male"
 
 
 def test_tenure_order_is_preserved_not_chronological(session):

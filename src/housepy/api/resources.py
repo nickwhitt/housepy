@@ -18,7 +18,7 @@ from housepy.models.house import House
 from housepy.models.name import Name
 from housepy.models.person import Person
 from housepy.models.title import Tenure, Title
-from housepy.models.types import Slug
+from housepy.models.types import Sex, Slug
 
 type ResourceType = Literal["people", "titles", "families", "houses"]
 
@@ -30,6 +30,7 @@ class PersonAttributes(BaseModel):
     birth: Event
     death: Event | None = None
     tenures: list[Tenure] = []
+    sex: Sex | None = None
 
 
 class PersonRelationships(BaseModel):
@@ -185,6 +186,7 @@ def person_to_resource(
             birth=person.birth,
             death=person.death,
             tenures=person.titles,
+            sex=person.sex,
         ),
         relationships=relationships,
         links=ResourceLinks(self=str(request.url_for("get_person", slug=person.slug))),

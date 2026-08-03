@@ -34,6 +34,9 @@ jobs:
       - name: Export OpenAPI schema
         run: poetry run python scripts/export_openapi.py
 
+      - name: Export family graph
+        run: poetry run python scripts/export_graph.py
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs
