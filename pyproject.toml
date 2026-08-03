@@ -23,7 +23,8 @@ dev = [
     "freezegun (>=1.5.5,<2.0.0)",
     "httpx2 (>=2.9.1,<3.0.0)",
     "ruff (>=0.16.0,<0.17.0)",
-    "pyright (>=1.1.411,<2.0.0)"
+    "pyright (>=1.1.411,<2.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)"
 ]
 
 [tool.fastapi]
@@ -52,12 +53,9 @@ select = [
     "B"        # flake8-bugbear
 ]
 
-# B008 (function call in argument default) is meant to catch accidental mutable
-# defaults, but its heuristic for recognizing idiomatic FastAPI route signatures
-# breaks once a `Depends(...)`-typed parameter's annotation isn't a type ruff
-# already knows (e.g. `sqlalchemy.orm.Session`) — it then flags the `Depends`
-# call itself, which is the correct, intended FastAPI pattern. Exempt it
-# explicitly rather than working around ruff's detection.
+# Exempts fastapi.Depends from B008: ruff's heuristic for idiomatic FastAPI
+# signatures misses Depends(...) params typed with non-builtin classes (e.g.
+# sqlalchemy.orm.Session).
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends"]
 

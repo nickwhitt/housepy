@@ -1,5 +1,3 @@
-from typing import Self
-
 from pydantic.dataclasses import dataclass
 
 from housepy.models.event import Event
@@ -31,39 +29,3 @@ class Tenure:
     ceremony: Event | None = None
     pretense: bool = False
     regent_for: Slug | None = None  # the monarch being acted for
-
-    @classmethod
-    def regnal(
-        cls,
-        title: Slug,
-        accession: Event,
-        coronation: Event | None = None,
-        demise: Event | None = None,
-        pretense: bool = False,
-        regent_for: Slug | None = None,
-    ) -> Self:
-        return cls(
-            title=title,
-            start=accession,
-            ceremony=coronation,
-            end=demise,
-            pretense=pretense,
-            regent_for=regent_for,
-        )
-
-    @classmethod
-    def peerage(
-        cls,
-        title: Slug,
-        creation: Event,
-        investiture: Event | None = None,
-        extinction: Event | None = None,
-        pretense: bool = False,
-    ) -> Self:
-        return cls(
-            title=title,
-            start=creation,
-            ceremony=investiture,
-            end=extinction,
-            pretense=pretense,
-        )

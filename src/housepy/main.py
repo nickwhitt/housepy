@@ -6,7 +6,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from housepy.api.jsonapi import ErrorDocument, ErrorObject
+from housepy.api.jsonapi import (
+    DiscoveryDocument,
+    DiscoveryMeta,
+    ErrorDocument,
+    ErrorObject,
+)
 from housepy.api.routes import families, houses, people, titles
 
 JSONAPI_MEDIA_TYPE = "application/vnd.api+json"
@@ -62,21 +67,21 @@ async def validation_exception_handler(
 
 
 @app.get("/")
-async def root(request: Request) -> dict:
+async def root(request: Request) -> DiscoveryDocument:
     base = str(request.base_url)
-    return {
-        "meta": {
-            "name": "HousePy API",
-            "documentation": {
+    return DiscoveryDocument(
+        meta=DiscoveryMeta(
+            name="HousePy API",
+            documentation={
                 "swagger": urljoin(base, request.app.docs_url),
                 "redoc": urljoin(base, request.app.redoc_url),
                 "openapi": urljoin(base, request.app.openapi_url),
             },
-        },
-        "links": {
+        ),
+        links={
             "people": str(request.url_for("list_people")),
             "titles": str(request.url_for("list_titles")),
             "families": str(request.url_for("list_families")),
             "houses": str(request.url_for("list_houses")),
         },
-    }
+    )

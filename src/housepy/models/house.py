@@ -9,9 +9,8 @@ class House:
     """A noble house/dynasty.
 
     Slug convention: a bare identifier (e.g. `windsor`,
-    `saxe-coburg-and-gotha`) — the root of the `house.identifier` convention
-    used by `Person`/`Title` slugs, so it needs no compound form of its own.
-    `parent` references the house this one is a cadet branch of, if any.
+    `saxe-coburg-and-gotha`). `parent` references the house this one is a
+    cadet branch of, if any.
     """
 
     slug: Slug

@@ -20,7 +20,7 @@ async def list_families(
     page_items, links = paginate(
         loader.list_families(session), request, page_number, page_size
     )
-    resources = [family_to_resource(f, request) for f in page_items]
+    resources = [family_to_resource(f, session, request) for f in page_items]
     return FamilyDocument(
         data=resources,
         included=resolve_included(
@@ -37,7 +37,7 @@ async def get_family(
     session: Session = Depends(loader.get_session),
     include: str | None = Query(default=None),
 ) -> FamilyDocument:
-    resource = family_to_resource(loader.fetch_family(session, slug), request)
+    resource = family_to_resource(loader.fetch_family(session, slug), session, request)
     return FamilyDocument(
         data=resource,
         included=resolve_included(

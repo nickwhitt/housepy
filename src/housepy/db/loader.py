@@ -1,9 +1,11 @@
 """Query functions mapping the SQLAlchemy schema (`db/tables.py`) onto the domain
-dataclasses in `models/`. Every function here takes a `Session` and runs an explicit,
-targeted query — there is no ORM object graph (`tables.py` deliberately has no
-`relationship()`) and no bulk "load everything" step; each function queries exactly
-what it needs, and `get_session()` is the FastAPI dependency that supplies the session
-routes use to call them.
+dataclasses in `models/`. Each function takes a `Session` and runs an explicit
+query; `get_session()` is the FastAPI dependency that supplies it.
+
+`_events_by_id`, `_tenures_by_person`, and `_family_children_by_family` each load
+their whole table once and index by id/slug in Python, rather than querying
+per-item — avoids N+1 queries in the `list_*`/relationship functions that build
+more than one `Person`/`Family`.
 """
 
 from collections.abc import Generator
@@ -37,11 +39,9 @@ _engine: Engine | None = None
 
 
 def _get_engine() -> Engine:
-    """Lazily creates the shared in-memory engine on first use — not at import time,
-    so merely importing this module (or `housepy.main`) touches no database. This is
-    what gives tests (via `app.dependency_overrides` on `get_session`) a real seam to
-    substitute different data instead of this production engine ever running.
-    """
+    """Lazily creates the shared in-memory engine on first use, not at import
+    time. Tests substitute their own data via `app.dependency_overrides` on
+    `get_session` instead of using this engine."""
     global _engine
     if _engine is None:
         _engine = create_engine(
@@ -56,9 +56,8 @@ def _get_engine() -> Engine:
 
 
 def load_seed_data(engine: Engine) -> None:
-    # seed.sql has multiple statements in one script (BEGIN/INSERT.../COMMIT) —
-    # exec_driver_sql only runs a single statement, so this goes through the
-    # DBAPI connection's executescript() directly, same as raw sqlite3 would.
+    # executescript() runs seed.sql's multiple statements in one call;
+    # exec_driver_sql only supports a single statement.
     seed_sql = resources.files("housepy.db").joinpath("seed.sql").read_text()
     raw_conn = engine.raw_connection()
     try:
@@ -112,18 +111,18 @@ def _tenure_from_row(row: TenureTable, events: dict[int, Event]) -> Tenure:
     )
 
 
-def _tenures_for_person(
-    session: Session, events: dict[int, Event], slug: Slug
-) -> list[Tenure]:
-    # ORDER BY id preserves insertion order — not necessarily chronological (a
-    # person's tenures can be authored/listed in any order) — sorting by date
-    # would silently change behavior.
-    rows = session.execute(
-        select(TenureTable)
-        .where(TenureTable.person_slug == slug)
-        .order_by(TenureTable.id)
-    ).scalars()
-    return [_tenure_from_row(row, events) for row in rows]
+def _tenures_by_person(
+    session: Session, events: dict[int, Event]
+) -> dict[Slug, list[Tenure]]:
+    # ORDER BY id preserves insertion order, which is not necessarily
+    # chronological — do not sort by date.
+    rows = session.execute(select(TenureTable).order_by(TenureTable.id)).scalars()
+    tenures_by_person: dict[Slug, list[Tenure]] = {}
+    for row in rows:
+        tenures_by_person.setdefault(row.person_slug, []).append(
+            _tenure_from_row(row, events)
+        )
+    return tenures_by_person
 
 
 # ---------- people ----------
@@ -141,19 +140,18 @@ def _name_from_person_row(row: PersonTable) -> Name:
 
 
 def _person_from_row(
-    row: PersonTable, session: Session, events: dict[int, Event]
+    row: PersonTable,
+    tenures_by_person: dict[Slug, list[Tenure]],
+    events: dict[int, Event],
 ) -> Person:
     return Person(
         slug=row.slug,
         name=_name_from_person_row(row),
         birth=events[row.birth_event_id],
         death=_event_or_none(events, row.death_event_id),
-        titles=_tenures_for_person(session, events, row.slug),
+        titles=tenures_by_person.get(row.slug, []),
         house=row.house_slug,
-        # PersonTable.sex is a plain `str | None` column — tables.py deliberately
-        # doesn't mirror domain-level types (see its module docstring), so the
-        # narrowing to Sex is only visible via the DB's own `ck_people_sex`
-        # CheckConstraint, not to the type checker.
+        # DB column is a plain str, narrowed via the ck_people_sex CheckConstraint.
         sex=cast(Sex | None, row.sex),
     )
 
@@ -162,13 +160,15 @@ def fetch_person(session: Session, slug: Slug) -> Person:
     row = session.get(PersonTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    return _person_from_row(row, session, _events_by_id(session))
+    events = _events_by_id(session)
+    return _person_from_row(row, _tenures_by_person(session, events), events)
 
 
 def list_people(session: Session) -> list[Person]:
     events = _events_by_id(session)
+    tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(select(PersonTable)).scalars()
-    return [_person_from_row(row, session, events) for row in rows]
+    return [_person_from_row(row, tenures_by_person, events) for row in rows]
 
 
 # ---------- titles ----------
@@ -220,23 +220,26 @@ def list_houses(session: Session) -> list[House]:
 # ---------- families ----------
 
 
-def _family_children(session: Session, slug: Slug) -> list[Slug]:
+def _family_children_by_family(session: Session) -> dict[Slug, list[Slug]]:
     rows = session.execute(
-        select(FamilyChildTable)
-        .where(FamilyChildTable.family_slug == slug)
-        .order_by(FamilyChildTable.position)
+        select(FamilyChildTable).order_by(FamilyChildTable.position)
     ).scalars()
-    return [row.child_slug for row in rows]
+    children_by_family: dict[Slug, list[Slug]] = {}
+    for row in rows:
+        children_by_family.setdefault(row.family_slug, []).append(row.child_slug)
+    return children_by_family
 
 
 def _family_from_row(
-    row: FamilyTable, session: Session, events: dict[int, Event]
+    row: FamilyTable,
+    children_by_family: dict[Slug, list[Slug]],
+    events: dict[int, Event],
 ) -> Family:
     return Family(
         slug=row.slug,
         father=row.father_slug,
         mother=row.mother_slug,
-        children=_family_children(session, row.slug),
+        children=children_by_family.get(row.slug, []),
         married=_event_or_none(events, row.married_event_id),
         divorced=_event_or_none(events, row.divorced_event_id),
     )
@@ -246,13 +249,16 @@ def fetch_family(session: Session, slug: Slug) -> Family:
     row = session.get(FamilyTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    return _family_from_row(row, session, _events_by_id(session))
+    return _family_from_row(
+        row, _family_children_by_family(session), _events_by_id(session)
+    )
 
 
 def list_families(session: Session) -> list[Family]:
     events = _events_by_id(session)
+    children_by_family = _family_children_by_family(session)
     rows = session.execute(select(FamilyTable)).scalars()
-    return [_family_from_row(row, session, events) for row in rows]
+    return [_family_from_row(row, children_by_family, events) for row in rows]
 
 
 # ---------- relationship-support queries (used by api/resources.py) ----------
@@ -260,6 +266,7 @@ def list_families(session: Session) -> list[Family]:
 
 def families_for_person(session: Session, slug: Slug) -> list[Family]:
     events = _events_by_id(session)
+    children_by_family = _family_children_by_family(session)
     rows = session.execute(
         select(FamilyTable)
         .outerjoin(FamilyChildTable, FamilyChildTable.family_slug == FamilyTable.slug)
@@ -272,7 +279,7 @@ def families_for_person(session: Session, slug: Slug) -> list[Family]:
         )
         .distinct()
     ).scalars()
-    return [_family_from_row(row, session, events) for row in rows]
+    return [_family_from_row(row, children_by_family, events) for row in rows]
 
 
 def tenures_for_title(session: Session, slug: Slug) -> list[tuple[Slug, Tenure]]:
@@ -287,13 +294,14 @@ def tenures_for_title(session: Session, slug: Slug) -> list[tuple[Slug, Tenure]]
 
 def holders_for_title(session: Session, slug: Slug) -> list[Person]:
     events = _events_by_id(session)
+    tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(
         select(PersonTable)
         .join(TenureTable, TenureTable.person_slug == PersonTable.slug)
         .where(TenureTable.title_slug == slug)
         .distinct()
     ).scalars()
-    return [_person_from_row(row, session, events) for row in rows]
+    return [_person_from_row(row, tenures_by_person, events) for row in rows]
 
 
 def cadet_branches(session: Session, slug: Slug) -> list[House]:
@@ -306,7 +314,8 @@ def cadet_branches(session: Session, slug: Slug) -> list[House]:
 
 def members_of_house(session: Session, slug: Slug) -> list[Person]:
     events = _events_by_id(session)
+    tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(
         select(PersonTable).where(PersonTable.house_slug == slug)
     ).scalars()
-    return [_person_from_row(row, session, events) for row in rows]
+    return [_person_from_row(row, tenures_by_person, events) for row in rows]

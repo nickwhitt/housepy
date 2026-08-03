@@ -21,9 +21,8 @@ def test_seed_loads_without_integrity_errors():
 
 
 def test_seed_row_counts():
-    # Lower bounds, not exact matches — the fixture dataset only grows via
-    # data-entry PRs, so a `>=` here never needs bumping for a legitimate
-    # addition. It still catches a table silently loading empty.
+    # Lower bounds, not exact — avoids bumping this for every new data-entry
+    # PR, while still catching a table silently loading empty.
     minimums = {
         "events": 12,
         "houses": 2,

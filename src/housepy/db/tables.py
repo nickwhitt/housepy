@@ -1,8 +1,7 @@
-"""SQLAlchemy declarative schema, mirroring the domain model but not identical to
-it — see the Datastore section of the project README for the rationale (surrogate
-`events`/`tenures` ids, flattened `Name` columns, etc). Deliberately no
-`relationship()` — every query in `loader.py` is an explicit `select()`, so there is
-no ORM object graph to keep in sync with the domain dataclasses in `models/`.
+"""SQLAlchemy schema for the seed-data store. Mirrors the domain model in
+`models/` but isn't identical (surrogate `events`/`tenures` ids, flattened
+`Name` columns) — see README's "Editing the dataset" section. No
+`relationship()` is defined; `loader.py` queries explicitly via `select()`.
 """
 
 from sqlalchemy import CheckConstraint, ForeignKey, PrimaryKeyConstraint

@@ -35,8 +35,8 @@ def _in_memory_engine():
 
 @pytest.fixture(scope="session")
 def engine():
-    """Real seed.sql-backed — for tests/db/, which validates the actual
-    authored dataset and the loader's round-trip fidelity against it."""
+    """Seed.sql-backed engine — use for tests/db/, which validates the real
+    authored dataset."""
     engine = _in_memory_engine()
     load_seed_data(engine)
     return engine
@@ -51,17 +51,15 @@ def session(engine):
 @pytest.fixture
 def api_session():
     """Fresh, empty schema per test — tests/api/ populates it via the make_*
-    factory fixtures below rather than a shared dataset, so each test's data
-    is private and immune to what other tests (or seed.sql) contain."""
+    fixtures below instead of using the shared seed.sql dataset."""
     with Session(_in_memory_engine()) as session:
         yield session
 
 
 @pytest.fixture
 def client(api_session):
-    # No `with`/close here, deliberately — api_session's own fixture owns
-    # that lifecycle, and it's shared with the make_* fixtures so a route
-    # handler sees data a test just built without needing a commit.
+    # api_session owns the session lifecycle; shared with the make_* fixtures
+    # so a route handler sees data a test just built, without a commit.
     def override_get_session():
         yield api_session
 

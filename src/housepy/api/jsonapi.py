@@ -1,7 +1,9 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
+from typing import Protocol
 
 from fastapi import Request
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
 
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 20
@@ -43,12 +45,23 @@ class ErrorDocument(BaseModel):
     errors: list[ErrorObject]
 
 
+class DiscoveryMeta(BaseModel):
+    name: str
+    documentation: dict[str, str]
+
+
+class DiscoveryDocument(BaseModel):
+    """The `GET /` self-discovery document — see main.py's `root()`."""
+
+    meta: DiscoveryMeta
+    links: dict[str, str]
+
+
 def paginate[T](
     items: list[T], request: Request, page_number: int, page_size: int
 ) -> tuple[list[T], DocumentLinks]:
-    """Clamp the requested page[number]/page[size] (forgiving, not a 422 — out-of-range
-    values are pulled back into range rather than rejected), slice `items`, and build
-    the matching top-level pagination links."""
+    """Clamps `page[number]`/`page[size]` into valid range, slices `items`,
+    and builds the matching top-level pagination links."""
     page_size = max(1, min(page_size, MAX_PAGE_SIZE))
     page_number = max(1, page_number)
     total = len(items)
@@ -89,7 +102,21 @@ def _relationship_items(relationships: BaseModel | None) -> Iterable[Relationshi
     ]
 
 
-def resolve_included(resources, include, request, resource_builders, session):
+class _HasRelationships(Protocol):
+    """Structural stand-in for PersonResource/TitleResource/FamilyResource/
+    HouseResource, so this module doesn't import from resources.py."""
+
+    @property
+    def relationships(self) -> BaseModel | None: ...
+
+
+def resolve_included[T](
+    resources: Iterable[_HasRelationships],
+    include: str | None,
+    request: Request,
+    resource_builders: Mapping[str, Callable[[str, Session, Request], T]],
+    session: Session,
+) -> list[T] | None:
     """Resolve one level of relationship identifiers into bare resources for
     the `included` array. Works against any resource objects that expose a
     `.relationships` attribute — no dependency on which resource types exist."""

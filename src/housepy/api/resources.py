@@ -224,7 +224,12 @@ def title_to_resource(
 
 
 def family_to_resource(
-    family: Family, request: Request, include_relationships: bool = True
+    # `session` is unused (Family's relationships are direct slug fields) but
+    # kept for the same call shape as the other three builders.
+    family: Family,
+    session: Session,
+    request: Request,
+    include_relationships: bool = True,
 ) -> FamilyResource:
     relationships = None
     if include_relationships:
@@ -288,10 +293,8 @@ def house_to_resource(
     )
 
 
-# These four builders back RESOURCE_BUILDERS, used only to build "bare"
-# `included` entries (include_relationships=False, so `relationships` comes
-# back `null` rather than omitted — an intentional signal that this
-# resource has no relationships to report here, not a missing field).
+# These four builders back RESOURCE_BUILDERS, building "bare" `included`
+# entries — `relationships` comes back `null`, not omitted.
 def _build_person(slug: Slug, session: Session, request: Request):
     return person_to_resource(
         loader.fetch_person(session, slug),
@@ -309,7 +312,10 @@ def _build_title(slug: Slug, session: Session, request: Request):
 
 def _build_family(slug: Slug, session: Session, request: Request):
     return family_to_resource(
-        loader.fetch_family(session, slug), request, include_relationships=False
+        loader.fetch_family(session, slug),
+        session,
+        request,
+        include_relationships=False,
     )
 
 
@@ -319,9 +325,7 @@ def _build_house(slug: Slug, session: Session, request: Request):
     )
 
 
-RESOURCE_BUILDERS: dict[
-    ResourceType, Callable[[Slug, Session, Request], IncludedResource]
-] = {
+RESOURCE_BUILDERS: dict[str, Callable[[Slug, Session, Request], IncludedResource]] = {
     "people": _build_person,
     "titles": _build_title,
     "families": _build_family,

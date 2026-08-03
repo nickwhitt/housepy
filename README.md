@@ -1,6 +1,13 @@
 # HousePy
 
+[![Release](https://img.shields.io/github/v/release/nickwhitt/housepy)](https://github.com/nickwhitt/housepy/releases)
+[![CI](https://github.com/nickwhitt/housepy/actions/workflows/ci.yml/badge.svg)](https://github.com/nickwhitt/housepy/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](pyproject.toml)
+
 A FastAPI service for modeling European nobility family trees — tracking people, titles, and lineage events through a graph-backed data model.
+
+**[Live API](https://housepy.fastapicloud.dev)** · **[Docs & family tree graph](https://nickwhitt.github.io/housepy/)**
 
 ## Overview
 
@@ -11,7 +18,12 @@ HousePy models European noble houses using:
 - **Title** — Regnal or Peerage titles, with creation/ascension and optional descent events
 - **House** — a dynasty/noble house, with optional parent house (cadet branches), founder, and founding/exile events
 - **Event** — dated occurrences (birth, death, ascension, etc.) with optional place
-- **Repository** — a `NetworkX`-backed graph linking people and families through shared titles and parent-child relationships
+
+These four are exposed as JSON:API resources (`Person`/`Title`/`Family`/`House`
+— `Event` is an attribute of the others, not a resource of its own). The same
+data also drives a separate, static
+[NetworkX](https://networkx.org/)/[pyvis](https://pyvis.readthedocs.io/) graph
+linking people, titles, and families — see **Documentation site** below.
 
 ### Slug conventions
 
@@ -110,6 +122,18 @@ Run the test suite:
 poetry run pytest
 ```
 
+With a coverage report:
+
+```bash
+poetry run pytest --cov=housepy --cov-report=term-missing
+```
+
+Type-check with [pyright](https://microsoft.github.io/pyright/):
+
+```bash
+poetry run pyright
+```
+
 ### Editor Setup (VS Code)
 
 This repo ships a `.vscode/settings.json` and `.vscode/extensions.json` with recommended tooling. When you open the folder, VS Code will prompt you to install:
@@ -122,9 +146,50 @@ Format-on-save and lint auto-fixes are preconfigured for Python files. None of t
 
 ## Running the API
 
+A live instance runs at **[housepy.fastapicloud.dev](https://housepy.fastapicloud.dev)**,
+auto-deployed from `main` on every push. To run locally instead:
+
 ```bash
 poetry run fastapi dev
 ```
+
+Routes are versioned under `/v1` (e.g. `GET /v1/people`, not `GET /people`).
+Responses follow the [JSON:API](https://jsonapi.org/) spec:
+
+- List endpoints support `page[number]`/`page[size]` pagination (default page
+  size 20, capped at 100) and return `first`/`prev`/`next`/`last` links.
+- Errors — 404s, validation failures, etc. — come back as a JSON:API error
+  document (`{"errors": [{"status", "title", "detail"}, ...]}`), not FastAPI's
+  default `{"detail": ...}` shape.
+- `GET /` is a self-discovery document linking to each resource collection
+  plus the Swagger, Redoc, and OpenAPI schema URLs.
+
+Interactive API docs are available at `/docs` (Swagger) and `/redoc` (Redoc)
+once the server is running.
+
+## Documentation site
+
+Published at **[nickwhitt.github.io/housepy](https://nickwhitt.github.io/housepy/)**
+from the [`docs/`](docs/) folder on every push to `main`: a static Redoc export of the
+API schema, and an interactive
+[pyvis](https://pyvis.readthedocs.io/)/[NetworkX](https://networkx.org/)
+family-tree graph (`docs/graph.html`) linking people, titles, and families.
+Both are generated fresh at deploy time (`scripts/export_openapi.py`,
+`scripts/export_graph.py`) — neither file is committed.
+
+## Contributing
+
+Both code and dataset changes (see **Editing the dataset** above) go through
+pull requests. Before opening one, run:
+
+```bash
+poetry run ruff check .
+poetry run ruff format .
+poetry run pytest
+poetry run pyright
+```
+
+CI runs the same checks on every push and PR.
 
 ## License
 

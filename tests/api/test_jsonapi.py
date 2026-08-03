@@ -1,6 +1,7 @@
 from typing import cast
 
 from fastapi import Request
+from sqlalchemy.orm import Session
 from starlette.datastructures import URL
 
 from housepy.api.jsonapi import (
@@ -46,6 +47,15 @@ def _title_resource(slug, holder_slugs):
     )
 
 
+def _fake_request(url="http://testserver/v1/people") -> Request:
+    # Only `.url.include_query_params` is touched by the code under test.
+    return cast(Request, type("FakeRequest", (), {"url": URL(url)})())
+
+
+# Never dereferenced by these tests' fake builders — a typed stand-in.
+_FAKE_SESSION = cast(Session, None)
+
+
 def _fake_builders(calls):
     def build(type_):
         def _build(id_, session, request):
@@ -59,14 +69,26 @@ def _fake_builders(calls):
 
 def test_no_include_returns_none():
     resources = [_person_resource("p1", ["t1"])]
-    assert resolve_included(resources, None, None, _fake_builders([]), None) is None
-    assert resolve_included(resources, "", None, _fake_builders([]), None) is None
+    assert (
+        resolve_included(
+            resources, None, _fake_request(), _fake_builders([]), _FAKE_SESSION
+        )
+        is None
+    )
+    assert (
+        resolve_included(
+            resources, "", _fake_request(), _fake_builders([]), _FAKE_SESSION
+        )
+        is None
+    )
 
 
 def test_single_type_resolves_matching_identifiers():
     resources = [_person_resource("p1", ["t1"])]
     calls = []
-    result = resolve_included(resources, "titles", None, _fake_builders(calls), None)
+    result = resolve_included(
+        resources, "titles", _fake_request(), _fake_builders(calls), _FAKE_SESSION
+    )
     assert calls == [("titles", "t1")]
     assert result == [{"type": "titles", "id": "t1"}]
 
@@ -77,13 +99,17 @@ def test_duplicate_identifiers_deduped():
         _person_resource("p2", ["t1"]),
     ]
     calls = []
-    resolve_included(resources, "titles", None, _fake_builders(calls), None)
+    resolve_included(
+        resources, "titles", _fake_request(), _fake_builders(calls), _FAKE_SESSION
+    )
     assert calls == [("titles", "t1")]
 
 
 def test_unmatched_include_returns_none():
     resources = [_person_resource("p1", ["t1"])]
-    result = resolve_included(resources, "nonexistent", None, _fake_builders([]), None)
+    result = resolve_included(
+        resources, "nonexistent", _fake_request(), _fake_builders([]), _FAKE_SESSION
+    )
     assert result is None
 
 
@@ -92,7 +118,9 @@ def test_resource_with_no_relationships_is_skipped():
         id="p1", attributes=PersonAttributes(name=Name(), birth=Event(1900))
     )
     assert resource.relationships is None
-    result = resolve_included([resource], "titles", None, _fake_builders([]), None)
+    result = resolve_included(
+        [resource], "titles", _fake_request(), _fake_builders([]), _FAKE_SESSION
+    )
     assert result is None
 
 
@@ -103,7 +131,11 @@ def test_mixed_single_and_multi_value_relationships_flatten():
     ]
     calls = []
     result = resolve_included(
-        resources, "titles,people", None, _fake_builders(calls), None
+        resources,
+        "titles,people",
+        _fake_request(),
+        _fake_builders(calls),
+        _FAKE_SESSION,
     )
     assert set(calls) == {("titles", "t1"), ("people", "p2"), ("people", "p3")}
     assert result is not None
@@ -113,14 +145,6 @@ def test_mixed_single_and_multi_value_relationships_flatten():
 def test_resource_links_self_alias_round_trips():
     links = ResourceLinks(self="http://testserver/people/p1")
     assert links.self_link == "http://testserver/people/p1"
-
-
-def _fake_request(url="http://testserver/v1/people") -> Request:
-    # paginate() only ever touches `request.url.include_query_params`, so a
-    # bare object carrying a real starlette URL is enough — no need for a
-    # full Request/ASGI scope. The cast is the one place that's asserted;
-    # callers get a real Request type, not Any.
-    return cast(Request, type("FakeRequest", (), {"url": URL(url)})())
 
 
 def test_paginate_slices_by_page_size():

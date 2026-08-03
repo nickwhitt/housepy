@@ -5,10 +5,9 @@ from pydantic.dataclasses import dataclass
 class Name:
     """A set of names by which an individual is known.
 
-    `prefix` is the nobiliary particle attached to `family` for display
-    (e.g. "of", "d'", "von") — kept as a separate field so search/sort can
-    match on `family` alone without accounting for the particle. `suffix`
-    is a trailing epithet (e.g. "the Great", "the Bald").
+    `prefix` is a nobiliary particle displayed before `family` (e.g. "of",
+    "d'", "von"). `suffix` is a trailing epithet (e.g. "the Great", "the
+    Bald").
     """
 
     given: str | None = None

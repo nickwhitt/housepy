@@ -5,11 +5,7 @@ from pathlib import Path
 DB_PATH = Path("housepy.db")
 SEED_PATH = Path("src/housepy/db/seed.sql")
 
-# INSERT statements are emitted in this order for readable, stable diffs —
-# schema/table creation now lives in db/tables.py, not this file, so the
-# original "FK target table must already exist as a schema object" ordering
-# constraint no longer applies here. Kept as a fixed order anyway rather than
-# iterdump()'s default alphabetical-per-table ordering.
+# Fixed order for readable, stable diffs (iterdump() defaults to alphabetical).
 TABLE_ORDER = [
     "events",
     "houses",

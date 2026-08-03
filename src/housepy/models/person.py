@@ -29,12 +29,8 @@ class Person:
 
     @property
     def age(self) -> int:
-        """Calculates age based on known birth and death events.
-
-        Properly calculates age before/after birthdate of death year when both dates
-        are known, otherwise assumes death occured after birthdate. If no death event
-        is recorded, today's date will be treated as date of death.
-        """
+        """Age at death, or as of today if still living. Falls back to a
+        year-only calculation if the death date has no month/day."""
 
         if self.death and not self.death.date:
             return self.death.year - self.birth.year

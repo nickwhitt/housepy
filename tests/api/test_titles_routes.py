@@ -83,8 +83,7 @@ def test_get_title_not_found(client):
 def test_include_holders_returns_bare_resources(
     client, make_person, make_title, make_tenure
 ):
-    # `include` filters by resource type ("people"), not the relationship's
-    # field name ("holders") — holders are ResourceIdentifiers of type "people".
+    # `include` filters by resource type ("people"), not field name ("holders").
     title = make_title(slug="test.duke")
     alice = make_person(slug="test.alice")
     bob = make_person(slug="test.bob")
@@ -114,3 +113,11 @@ def test_include_holders_deduped_across_list(
     ids = [item["id"] for item in included]
     assert len(ids) == len(set(ids))  # no repeats, regardless of dataset size
     assert ids.count("test.alice") == 1
+
+
+def test_links_self(client, make_title):
+    title = make_title(slug="test.duke")
+
+    response = client.get(f"/v1/titles/{title.slug}")
+    self_link = response.json()["data"]["links"]["self"]
+    assert self_link.endswith(f"/v1/titles/{title.slug}")

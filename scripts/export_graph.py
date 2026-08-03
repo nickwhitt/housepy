@@ -14,9 +14,8 @@ from housepy.models.title import Title
 
 OUTPUT_PATH = Path("docs/graph.html")
 
-# Fixed-order categorical ramp (dataviz skill's validated 8-hue set — CVD-safe
-# adjacent pairs) for house identity, shown as each person node's border.
-# People without a recorded house fall back to a neutral, off-ramp gray.
+# Categorical ramp for house identity, shown as each person node's border.
+# No recorded house falls back to a neutral gray.
 HOUSE_COLORS = [
     "#2a78d6",  # blue
     "#eb6834",  # orange
@@ -29,27 +28,13 @@ HOUSE_COLORS = [
 ]
 NO_HOUSE_COLOR = "#898781"
 
-# Structural chrome for title/family nodes — muted relative to the vivid house
-# ramp above (so neither reads as "a house"), but split warm vs. cool so the
-# two are easy to tell apart at a glance, unlike an earlier same-temperature
-# sage/taupe pairing that read as one color.
+# Muted title/family node colors, warm vs. cool so they're distinguishable
+# from each other and from the vivid house ramp above.
 TITLE_COLOR = {"background": "#f6ead2", "border": "#b5793e"}  # warm ochre
 FAMILY_COLOR = {"background": "#e6ecf5", "border": "#5c6f95"}  # cool slate-blue
 
-# Standard pedigree-chart shapes (square/circle/diamond for male/female/
-# unknown), adapted to vis-network's actual sizing behavior: both known-sex
-# shapes stay "box" — it fits width/height to the label independently,
-# unlike "circle" (forces width == height, so a long name blows its
-# diameter out) or "ellipse" (fits, but a long single-line name still
-# reads oddly against a two-line label) — and are told apart purely by
-# corner rounding instead: sharp 90° corners for male, a rounded/pill-like
-# box for female. `shapeProperties.borderRadius` is a real vis-network node
-# option (confirmed in the bundled vis-network source: default 6, valid
-# range 0-20), passed straight through by pyvis's Node class untouched —
-# unlike the `color` parameter, it isn't dropped when `group` is also set.
-# Unset sex falls back to "diamond", the one shape vis-network draws with
-# the label outside, so an unrecorded sex visibly stands out rather than
-# blending in.
+# Pedigree-chart shapes: sharp-cornered box (male) vs. rounded box (female,
+# via shapeProperties.borderRadius); diamond fallback for unset sex.
 PERSON_SHAPE = {
     "male": {"shape": "box", "shapeProperties": {"borderRadius": 0}},
     "female": {"shape": "box", "shapeProperties": {"borderRadius": 20}},
@@ -101,9 +86,8 @@ def _add_person_node(
         if title.slug not in graph.nodes:
             graph.add_node(title.slug, label=str(title), group="title", shape="box")
 
-        # An open-ended tenure (no recorded end) ran until the holder's death — a
-        # display-only fallback, not written back to the tenure record. Still None
-        # for a living, currently-tenured holder.
+        # Falls back to person.death for an open-ended tenure; display-only,
+        # not written back to the tenure record.
         end = tenure.end or person.death
         reign = " - ".join(
             str(occurrence) for occurrence in (tenure.start, end) if occurrence
@@ -126,9 +110,7 @@ def _add_family_node(
     people: dict[str, Person],
     titles: dict[str, Title],
 ) -> None:
-    # Mirrors _add_person_node's label exactly: bare years joined by "-",
-    # symbols reserved for the tooltip. A family always has at most two
-    # dates (married/divorced), same shape as a person's birth/death.
+    # Bare years joined by "-"; symbols reserved for the tooltip.
     marriage_span = [
         occurrence
         for occurrence in (family.married, family.divorced)
@@ -149,11 +131,7 @@ def _add_family_node(
             )
         ),
         group="family",
-        # "dot" is fixed-size and label-outside — family's label is already
-        # short ("1741-1755"), and a fixed size means it can't grow with text
-        # the way ellipse/box do, so it stays visually distinct from person
-        # nodes regardless of label length.
-        shape="dot",
+        shape="dot",  # fixed-size, keeps family nodes visually distinct from people
     )
 
     for parent_slug in filter(None, [family.father, family.mother]):
@@ -177,9 +155,8 @@ def build_graph(
 def _apply_colors(
     network: Network, people: dict[str, Person], house_colors: dict[str, str]
 ) -> None:
-    # pyvis' add_node() silently drops an explicit `color` whenever `group` is
-    # also set (it assumes the group owns styling in that case) — so colors are
-    # applied here, as a pass over the already-built pyvis nodes, instead.
+    # pyvis drops an explicit `color` when `group` is also set, so colors are
+    # applied here instead, as a pass over the already-built pyvis nodes.
     for node in network.nodes:
         if node["group"] == "person":
             house = people[node["id"]].house
@@ -203,16 +180,8 @@ def main() -> None:
 
     graph = build_graph(people, titles, families)
 
-    # select_menu=True would also wire pyvis' bundled neighbourhoodHighlight
-    # click handler (confirmed in pyvis' own template.html — the two aren't
-    # separable), which has a known bug: it grays out the whole graph after
-    # the first selection instead of resetting cleanly. Left off since we
-    # don't use the node-search dropdown it brings, and it's third-party
-    # template JS not worth patching for that.
-    # "100%" wouldn't work here — pyvis' #mynetwork div has no ancestor
-    # (html/body) with an explicit height, and CSS percentage heights need
-    # that chain or they collapse. "vh" is relative to the viewport itself,
-    # not a parent element, so it doesn't have that dependency.
+    # select_menu=True brings a buggy neighbourhoodHighlight handler; left off.
+    # "100vh", not "100%" — #mynetwork has no ancestor with an explicit height.
     network = Network(height="100vh", directed=True, cdn_resources="remote")
     network.set_options("""
     var options = {
@@ -231,11 +200,8 @@ def main() -> None:
     network.from_nx(graph)
     _apply_colors(network, people, _house_colors(people))
 
-    # pyvis' template renders `<center><h1>{{heading}}</h1></center>` (twice)
-    # unconditionally — an empty heading="" still leaves two blank <h1>
-    # blocks reserving vertical space above the graph, which is what was
-    # eating into the 100vh canvas. No constructor flag suppresses it, so
-    # it's stripped here rather than fought in the template.
+    # Strips pyvis' blank <h1> heading blocks, which otherwise eat into the
+    # 100vh canvas — no constructor flag suppresses them.
     html = re.sub(
         r"<center>\s*<h1>\s*</h1>\s*</center>\s*", "", network.generate_html()
     )
