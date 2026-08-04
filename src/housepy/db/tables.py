@@ -41,13 +41,13 @@ class HouseTable(Base):
     parent_slug: Mapped[str | None] = mapped_column(
         ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
     )
+    renamed_from_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
+    )
     founder_slug: Mapped[str | None] = mapped_column(
         ForeignKey("people.slug", deferrable=True, initially="DEFERRED")
     )
     founded_event_slug: Mapped[str | None] = mapped_column(
-        ForeignKey("events.slug", deferrable=True, initially="DEFERRED")
-    )
-    exiled_event_slug: Mapped[str | None] = mapped_column(
         ForeignKey("events.slug", deferrable=True, initially="DEFERRED")
     )
 
@@ -58,6 +58,12 @@ class TitleTable(Base):
     slug: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
     group_name: Mapped[str | None]
+    created_event_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("events.slug", deferrable=True, initially="DEFERRED")
+    )
+    abolished_event_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("events.slug", deferrable=True, initially="DEFERRED")
+    )
 
 
 class PersonTable(Base):
@@ -80,6 +86,9 @@ class PersonTable(Base):
         ForeignKey("events.slug", deferrable=True, initially="DEFERRED")
     )
     house_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
+    )
+    birth_house_slug: Mapped[str | None] = mapped_column(
         ForeignKey("houses.slug", deferrable=True, initially="DEFERRED")
     )
     sex: Mapped[str | None] = mapped_column(default=None)

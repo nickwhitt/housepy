@@ -72,6 +72,37 @@ def test_get_title_tenures_include_holder_and_dates(
     assert by_person["test.bob"]["end"]["year"] == 1806
 
 
+def test_get_title_created_and_abolished(client, make_title, make_event):
+    created = make_event(year=1567)
+    abolished = make_event(year=1806, month=8, day=14)
+    title = make_title(slug="test.duke", created=created, abolished=abolished)
+
+    response = client.get(f"/v1/titles/{title.slug}")
+    assert response.status_code == 200
+    attributes = response.json()["data"]["attributes"]
+    assert attributes["created"]["year"] == 1567
+    assert attributes["abolished"]["year"] == 1806
+
+
+def test_get_title_created_and_abolished_null_when_unset(client, make_title):
+    title = make_title(slug="test.duke")
+
+    response = client.get(f"/v1/titles/{title.slug}")
+    attributes = response.json()["data"]["attributes"]
+    assert attributes["created"] is None
+    assert attributes["abolished"] is None
+
+
+def test_get_title_group(client, make_title):
+    make_title(slug="test.king", group="Test Monarch")
+    make_title(slug="test.queen", group="Test Monarch")
+
+    king_response = client.get("/v1/titles/test.king")
+    queen_response = client.get("/v1/titles/test.queen")
+    assert king_response.json()["data"]["attributes"]["group"] == "Test Monarch"
+    assert queen_response.json()["data"]["attributes"]["group"] == "Test Monarch"
+
+
 def test_get_title_not_found(client):
     response = client.get("/v1/titles/does-not-exist")
     assert response.status_code == 404

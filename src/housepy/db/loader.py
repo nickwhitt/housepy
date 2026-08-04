@@ -151,6 +151,7 @@ def _person_from_row(
         death=_event_or_none(events, row.death_event_slug),
         titles=tenures_by_person.get(row.slug, []),
         house=row.house_slug,
+        birth_house=row.birth_house_slug,
         # DB column is a plain str, narrowed via the ck_people_sex CheckConstraint.
         sex=cast(Sex | None, row.sex),
     )
@@ -174,20 +175,27 @@ def list_people(session: Session) -> list[Person]:
 # ---------- titles ----------
 
 
-def _title_from_row(row: TitleTable) -> Title:
-    return Title(slug=row.slug, name=row.name, group=row.group_name)
+def _title_from_row(row: TitleTable, events: dict[Slug, Event]) -> Title:
+    return Title(
+        slug=row.slug,
+        name=row.name,
+        group=row.group_name,
+        created=_event_or_none(events, row.created_event_slug),
+        abolished=_event_or_none(events, row.abolished_event_slug),
+    )
 
 
 def fetch_title(session: Session, slug: Slug) -> Title:
     row = session.get(TitleTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    return _title_from_row(row)
+    return _title_from_row(row, _events_by_slug(session))
 
 
 def list_titles(session: Session) -> list[Title]:
+    events = _events_by_slug(session)
     rows = session.execute(select(TitleTable)).scalars()
-    return [_title_from_row(row) for row in rows]
+    return [_title_from_row(row, events) for row in rows]
 
 
 # ---------- houses ----------
@@ -198,9 +206,9 @@ def _house_from_row(row: HouseTable, events: dict[Slug, Event]) -> House:
         slug=row.slug,
         name=row.name,
         parent=row.parent_slug,
+        renamed_from=row.renamed_from_slug,
         founder=row.founder_slug,
         founded=_event_or_none(events, row.founded_event_slug),
-        exiled=_event_or_none(events, row.exiled_event_slug),
     )
 
 

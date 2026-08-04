@@ -87,18 +87,18 @@ def make_house(api_session):
         slug=None,
         name="Test House",
         parent=None,
+        renamed_from=None,
         founder=None,
         founded=None,
-        exiled=None,
     ):
         slug = slug or f"test.house-{next(_slug_counter)}"
         house = HouseTable(
             slug=slug,
             name=name,
             parent_slug=parent.slug if parent else None,
+            renamed_from_slug=renamed_from.slug if renamed_from else None,
             founder_slug=founder.slug if founder else None,
             founded_event_slug=founded.slug if founded else None,
-            exiled_event_slug=exiled.slug if exiled else None,
         )
         api_session.add(house)
         api_session.flush()
@@ -109,9 +109,17 @@ def make_house(api_session):
 
 @pytest.fixture
 def make_title(api_session):
-    def _make_title(*, slug=None, name="Test Title", group=None):
+    def _make_title(
+        *, slug=None, name="Test Title", group=None, created=None, abolished=None
+    ):
         slug = slug or f"test.title-{next(_slug_counter)}"
-        title = TitleTable(slug=slug, name=name, group_name=group)
+        title = TitleTable(
+            slug=slug,
+            name=name,
+            group_name=group,
+            created_event_slug=created.slug if created else None,
+            abolished_event_slug=abolished.slug if abolished else None,
+        )
         api_session.add(title)
         api_session.flush()
         return title
@@ -131,6 +139,7 @@ def make_person(api_session, make_event):
         birth=None,
         death=None,
         house=None,
+        birth_house=None,
         sex=None,
     ):
         slug = slug or f"test.person-{next(_slug_counter)}"
@@ -144,6 +153,7 @@ def make_person(api_session, make_event):
             birth_event_slug=birth.slug,
             death_event_slug=death.slug if death else None,
             house_slug=house.slug if house else None,
+            birth_house_slug=birth_house.slug if birth_house else None,
             sex=sex,
         )
         api_session.add(person)

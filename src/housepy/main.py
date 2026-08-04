@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from housepy import __version__
 from housepy.api.jsonapi import (
     DiscoveryDocument,
     DiscoveryMeta,
@@ -21,7 +22,9 @@ class JSONAPIResponse(JSONResponse):
     media_type = JSONAPI_MEDIA_TYPE
 
 
-app = FastAPI(title="HousePy", default_response_class=JSONAPIResponse)
+app = FastAPI(
+    title="HousePy", version=__version__, default_response_class=JSONAPIResponse
+)
 
 app.include_router(people.router, prefix="/v1/people", tags=["people"])
 app.include_router(titles.router, prefix="/v1/titles", tags=["titles"])
