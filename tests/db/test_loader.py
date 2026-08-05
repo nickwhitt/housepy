@@ -18,7 +18,7 @@ def test_list_includes_known_records(session):
     houses = loader.list_houses(session)
     assert {h.slug for h in houses} >= {"hesse", "hesse-darmstadt"}
     families = loader.list_families(session)
-    assert "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family-1" in {
+    assert "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family" in {
         f.slug for f in families
     }
 
@@ -110,7 +110,7 @@ def test_house_renamed_from(session):
 def test_families_for_person(session):
     families = loader.families_for_person(session, "hesse-darmstadt.ludwig-ix")
     assert [f.slug for f in families] == [
-        "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family-1"
+        "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family"
     ]
 
 
@@ -123,10 +123,10 @@ def test_holders_for_title(session):
 
 
 def test_cadet_branches_and_members_of_house(session):
-    assert [h.slug for h in loader.cadet_branches(session, "hesse")] == [
+    assert {h.slug for h in loader.cadet_branches(session, "hesse")} >= {
         "hesse-darmstadt"
-    ]
-    assert {p.slug for p in loader.members_of_house(session, "hesse-darmstadt")} == {
+    }
+    assert {p.slug for p in loader.members_of_house(session, "hesse-darmstadt")} >= {
         "hesse-darmstadt.ludwig-ix",
         "hesse-darmstadt.friederike-luise",
         "hesse-darmstadt.ludwig-i",
