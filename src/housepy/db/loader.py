@@ -2,8 +2,8 @@
 dataclasses in `models/`. Each function takes a `Session` and runs an explicit
 query; `get_session()` is the FastAPI dependency that supplies it.
 
-`_events_by_id`, `_tenures_by_person`, and `_family_children_by_family` each load
-their whole table once and index by id/slug in Python, rather than querying
+`_events_by_slug`, `_tenures_by_person`, and `_family_children_by_family` each
+load their whole table once and index by slug in Python, rather than querying
 per-item — avoids N+1 queries in the `list_*`/relationship functions that build
 more than one `Person`/`Family`.
 """
@@ -72,11 +72,11 @@ def get_session() -> Generator[Session]:
         yield session
 
 
-# ---------- events (surrogate id, identity-less in the domain — see tables.py) ----
+# ---------- events (slug-identified, identity-less in the domain) ----------
 
 
-def _event_or_none(events: dict[int, Event], event_id: int | None) -> Event | None:
-    return events[event_id] if event_id is not None else None
+def _event_or_none(events: dict[Slug, Event], event_slug: Slug | None) -> Event | None:
+    return events[event_slug] if event_slug is not None else None
 
 
 def _event_from_row(row: EventTable) -> Event:
@@ -92,27 +92,27 @@ def _event_from_row(row: EventTable) -> Event:
     return Event(row.year, row.month, row.day, row.place, name)
 
 
-def _events_by_id(session: Session) -> dict[int, Event]:
+def _events_by_slug(session: Session) -> dict[Slug, Event]:
     rows = session.execute(select(EventTable)).scalars()
-    return {row.id: _event_from_row(row) for row in rows}
+    return {row.slug: _event_from_row(row) for row in rows}
 
 
 # ---------- tenures ----------
 
 
-def _tenure_from_row(row: TenureTable, events: dict[int, Event]) -> Tenure:
+def _tenure_from_row(row: TenureTable, events: dict[Slug, Event]) -> Tenure:
     return Tenure(
         title=row.title_slug,
-        start=events[row.start_event_id],
-        end=_event_or_none(events, row.end_event_id),
-        ceremony=_event_or_none(events, row.ceremony_event_id),
+        start=events[row.start_event_slug],
+        end=_event_or_none(events, row.end_event_slug),
+        ceremony=_event_or_none(events, row.ceremony_event_slug),
         pretense=row.pretense,
         regent_for=row.regent_for_slug,
     )
 
 
 def _tenures_by_person(
-    session: Session, events: dict[int, Event]
+    session: Session, events: dict[Slug, Event]
 ) -> dict[Slug, list[Tenure]]:
     # ORDER BY id preserves insertion order, which is not necessarily
     # chronological — do not sort by date.
@@ -142,15 +142,16 @@ def _name_from_person_row(row: PersonTable) -> Name:
 def _person_from_row(
     row: PersonTable,
     tenures_by_person: dict[Slug, list[Tenure]],
-    events: dict[int, Event],
+    events: dict[Slug, Event],
 ) -> Person:
     return Person(
         slug=row.slug,
         name=_name_from_person_row(row),
-        birth=events[row.birth_event_id],
-        death=_event_or_none(events, row.death_event_id),
+        birth=events[row.birth_event_slug],
+        death=_event_or_none(events, row.death_event_slug),
         titles=tenures_by_person.get(row.slug, []),
         house=row.house_slug,
+        birth_house=row.birth_house_slug,
         # DB column is a plain str, narrowed via the ck_people_sex CheckConstraint.
         sex=cast(Sex | None, row.sex),
     )
@@ -160,12 +161,12 @@ def fetch_person(session: Session, slug: Slug) -> Person:
     row = session.get(PersonTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     return _person_from_row(row, _tenures_by_person(session, events), events)
 
 
 def list_people(session: Session) -> list[Person]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(select(PersonTable)).scalars()
     return [_person_from_row(row, tenures_by_person, events) for row in rows]
@@ -174,33 +175,40 @@ def list_people(session: Session) -> list[Person]:
 # ---------- titles ----------
 
 
-def _title_from_row(row: TitleTable) -> Title:
-    return Title(slug=row.slug, name=row.name, group=row.group_name)
+def _title_from_row(row: TitleTable, events: dict[Slug, Event]) -> Title:
+    return Title(
+        slug=row.slug,
+        name=row.name,
+        group=row.group_name,
+        created=_event_or_none(events, row.created_event_slug),
+        abolished=_event_or_none(events, row.abolished_event_slug),
+    )
 
 
 def fetch_title(session: Session, slug: Slug) -> Title:
     row = session.get(TitleTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    return _title_from_row(row)
+    return _title_from_row(row, _events_by_slug(session))
 
 
 def list_titles(session: Session) -> list[Title]:
+    events = _events_by_slug(session)
     rows = session.execute(select(TitleTable)).scalars()
-    return [_title_from_row(row) for row in rows]
+    return [_title_from_row(row, events) for row in rows]
 
 
 # ---------- houses ----------
 
 
-def _house_from_row(row: HouseTable, events: dict[int, Event]) -> House:
+def _house_from_row(row: HouseTable, events: dict[Slug, Event]) -> House:
     return House(
         slug=row.slug,
         name=row.name,
         parent=row.parent_slug,
+        renamed_from=row.renamed_from_slug,
         founder=row.founder_slug,
-        founded=_event_or_none(events, row.founded_event_id),
-        exiled=_event_or_none(events, row.exiled_event_id),
+        founded=_event_or_none(events, row.founded_event_slug),
     )
 
 
@@ -208,11 +216,11 @@ def fetch_house(session: Session, slug: Slug) -> House:
     row = session.get(HouseTable, slug)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
-    return _house_from_row(row, _events_by_id(session))
+    return _house_from_row(row, _events_by_slug(session))
 
 
 def list_houses(session: Session) -> list[House]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     rows = session.execute(select(HouseTable)).scalars()
     return [_house_from_row(row, events) for row in rows]
 
@@ -233,15 +241,15 @@ def _family_children_by_family(session: Session) -> dict[Slug, list[Slug]]:
 def _family_from_row(
     row: FamilyTable,
     children_by_family: dict[Slug, list[Slug]],
-    events: dict[int, Event],
+    events: dict[Slug, Event],
 ) -> Family:
     return Family(
         slug=row.slug,
         father=row.father_slug,
         mother=row.mother_slug,
         children=children_by_family.get(row.slug, []),
-        married=_event_or_none(events, row.married_event_id),
-        divorced=_event_or_none(events, row.divorced_event_id),
+        married=_event_or_none(events, row.married_event_slug),
+        divorced=_event_or_none(events, row.divorced_event_slug),
     )
 
 
@@ -250,12 +258,12 @@ def fetch_family(session: Session, slug: Slug) -> Family:
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="not found")
     return _family_from_row(
-        row, _family_children_by_family(session), _events_by_id(session)
+        row, _family_children_by_family(session), _events_by_slug(session)
     )
 
 
 def list_families(session: Session) -> list[Family]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     children_by_family = _family_children_by_family(session)
     rows = session.execute(select(FamilyTable)).scalars()
     return [_family_from_row(row, children_by_family, events) for row in rows]
@@ -265,7 +273,7 @@ def list_families(session: Session) -> list[Family]:
 
 
 def families_for_person(session: Session, slug: Slug) -> list[Family]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     children_by_family = _family_children_by_family(session)
     rows = session.execute(
         select(FamilyTable)
@@ -283,7 +291,7 @@ def families_for_person(session: Session, slug: Slug) -> list[Family]:
 
 
 def tenures_for_title(session: Session, slug: Slug) -> list[tuple[Slug, Tenure]]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     rows = session.execute(
         select(TenureTable)
         .where(TenureTable.title_slug == slug)
@@ -293,7 +301,7 @@ def tenures_for_title(session: Session, slug: Slug) -> list[tuple[Slug, Tenure]]
 
 
 def holders_for_title(session: Session, slug: Slug) -> list[Person]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(
         select(PersonTable)
@@ -305,7 +313,7 @@ def holders_for_title(session: Session, slug: Slug) -> list[Person]:
 
 
 def cadet_branches(session: Session, slug: Slug) -> list[House]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     rows = session.execute(
         select(HouseTable).where(HouseTable.parent_slug == slug)
     ).scalars()
@@ -313,7 +321,7 @@ def cadet_branches(session: Session, slug: Slug) -> list[House]:
 
 
 def members_of_house(session: Session, slug: Slug) -> list[Person]:
-    events = _events_by_id(session)
+    events = _events_by_slug(session)
     tenures_by_person = _tenures_by_person(session, events)
     rows = session.execute(
         select(PersonTable).where(PersonTable.house_slug == slug)

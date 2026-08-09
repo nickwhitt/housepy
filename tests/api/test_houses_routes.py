@@ -59,6 +59,27 @@ def test_get_house_root_has_no_parent_but_has_cadet_branch(client, make_house):
     ]
 
 
+def test_get_house_renamed_from(client, make_house):
+    predecessor = make_house(slug="test.battenberg")
+    house = make_house(slug="test.mountbatten", renamed_from=predecessor)
+
+    response = client.get(f"/v1/houses/{house.slug}")
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["relationships"]["renamed_from"]["data"] == {
+        "type": "houses",
+        "id": "test.battenberg",
+    }
+
+
+def test_get_house_renamed_from_null_when_unset(client, make_house):
+    house = make_house(slug="test.house")
+
+    response = client.get(f"/v1/houses/{house.slug}")
+    body = response.json()["data"]
+    assert body["relationships"]["renamed_from"]["data"] is None
+
+
 def test_get_house_not_found(client):
     response = client.get("/v1/houses/does-not-exist")
     assert response.status_code == 404

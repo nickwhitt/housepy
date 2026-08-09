@@ -10,12 +10,17 @@ class Title:
 
     Slug convention: `realm.office` (e.g. `hesse-darmstadt.landgrave`,
     `england.king`) — territorial/institutional, independent of whichever
-    house/dynasty currently holds the title.
+    house/dynasty currently holds the title. `created`/`abolished` date the
+    *office itself* — independent of any one `Tenure`'s start/end, and
+    independent of `House.founded` too (e.g. Hesse-Darmstadt was founded in
+    1740, decades before Ludwig IX's own 1768 landgrave tenure began).
     """
 
     slug: Slug
     name: str
     group: str | None = None
+    created: Event | None = None
+    abolished: Event | None = None
 
     def __str__(self) -> str:
         return self.name

@@ -37,6 +37,7 @@ class PersonRelationships(BaseModel):
     titles: Relationship | None = None
     families: Relationship | None = None
     house: Relationship | None = None
+    birth_house: Relationship | None = None
 
 
 class PersonResource(BaseModel):
@@ -62,6 +63,8 @@ class TitleHolding(BaseModel):
 class TitleAttributes(BaseModel):
     name: str
     group: str | None = None
+    created: Event | None = None
+    abolished: Event | None = None
     tenures: list[TitleHolding] = []
 
 
@@ -105,12 +108,12 @@ class FamilyResource(BaseModel):
 class HouseAttributes(BaseModel):
     name: str
     founded: Event | None = None
-    exiled: Event | None = None
 
 
 class HouseRelationships(BaseModel):
     parent: Relationship | None = None
     cadet_branches: Relationship | None = None
+    renamed_from: Relationship | None = None
     founder: Relationship | None = None
     members: Relationship | None = None
 
@@ -178,6 +181,11 @@ def person_to_resource(
                 if person.house
                 else None
             ),
+            birth_house=Relationship(
+                data=ResourceIdentifier(type="houses", id=person.birth_house)
+                if person.birth_house
+                else None
+            ),
         )
     return PersonResource(
         id=person.slug,
@@ -217,7 +225,13 @@ def title_to_resource(
         )
     return TitleResource(
         id=title.slug,
-        attributes=TitleAttributes(name=title.name, group=title.group, tenures=tenures),
+        attributes=TitleAttributes(
+            name=title.name,
+            group=title.group,
+            created=title.created,
+            abolished=title.abolished,
+            tenures=tenures,
+        ),
         relationships=relationships,
         links=ResourceLinks(self=str(request.url_for("get_title", slug=title.slug))),
     )
@@ -274,6 +288,11 @@ def house_to_resource(
                     ResourceIdentifier(type="houses", id=h.slug) for h in cadet_branches
                 ]
             ),
+            renamed_from=Relationship(
+                data=ResourceIdentifier(type="houses", id=house.renamed_from)
+                if house.renamed_from
+                else None
+            ),
             founder=Relationship(
                 data=ResourceIdentifier(type="people", id=house.founder)
                 if house.founder
@@ -285,9 +304,7 @@ def house_to_resource(
         )
     return HouseResource(
         id=house.slug,
-        attributes=HouseAttributes(
-            name=house.name, founded=house.founded, exiled=house.exiled
-        ),
+        attributes=HouseAttributes(name=house.name, founded=house.founded),
         relationships=relationships,
         links=ResourceLinks(self=str(request.url_for("get_house", slug=house.slug))),
     )

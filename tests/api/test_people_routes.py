@@ -161,6 +161,39 @@ def test_include_house_returns_bare_resource(client, make_person, make_house):
     assert included[0].get("relationships") is None
 
 
+def test_get_person_birth_house(client, make_person, make_house):
+    house = make_house(slug="test.birth-house")
+    person = make_person(slug="test.alice", birth_house=house)
+
+    response = client.get(f"/v1/people/{person.slug}")
+    body = response.json()["data"]
+    assert body["relationships"]["birth_house"]["data"] == {
+        "type": "houses",
+        "id": "test.birth-house",
+    }
+
+
+def test_get_person_birth_house_null_when_unset(client, make_person):
+    person = make_person(slug="test.alice")
+
+    response = client.get(f"/v1/people/{person.slug}")
+    body = response.json()["data"]
+    assert body["relationships"]["birth_house"]["data"] is None
+
+
+def test_include_birth_house_returns_bare_resource(client, make_person, make_house):
+    house = make_house(slug="test.birth-house")
+    person = make_person(slug="test.alice", birth_house=house)
+
+    response = client.get(f"/v1/people/{person.slug}?include=houses")
+    assert response.status_code == 200
+    included = response.json()["included"]
+    assert len(included) == 1
+    assert included[0]["type"] == "houses"
+    assert included[0]["id"] == "test.birth-house"
+    assert included[0].get("relationships") is None
+
+
 def test_links_self(client, make_person):
     person = make_person(slug="test.alice")
 

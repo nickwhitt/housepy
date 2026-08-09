@@ -1,6 +1,6 @@
 [project]
 name = "housepy"
-version = "1.0.0"
+version = "1.1.0"
 description = "Genealogy and peerage tracking for European nobility, built on FastAPI + NetworkX"
 authors = [
     {name = "Nick Whitt",email = "nick.whitt@pm.me"}

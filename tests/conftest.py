@@ -70,8 +70,9 @@ def client(api_session):
 
 @pytest.fixture
 def make_event(api_session):
-    def _make_event(*, year=1900, month=0, day=0, place=None):
-        event = EventTable(year=year, month=month, day=day, place=place)
+    def _make_event(*, slug=None, year=1900, month=0, day=0, place=None):
+        slug = slug or f"test.event-{next(_slug_counter)}"
+        event = EventTable(slug=slug, year=year, month=month, day=day, place=place)
         api_session.add(event)
         api_session.flush()
         return event
@@ -86,18 +87,18 @@ def make_house(api_session):
         slug=None,
         name="Test House",
         parent=None,
+        renamed_from=None,
         founder=None,
         founded=None,
-        exiled=None,
     ):
         slug = slug or f"test.house-{next(_slug_counter)}"
         house = HouseTable(
             slug=slug,
             name=name,
             parent_slug=parent.slug if parent else None,
+            renamed_from_slug=renamed_from.slug if renamed_from else None,
             founder_slug=founder.slug if founder else None,
-            founded_event_id=founded.id if founded else None,
-            exiled_event_id=exiled.id if exiled else None,
+            founded_event_slug=founded.slug if founded else None,
         )
         api_session.add(house)
         api_session.flush()
@@ -108,9 +109,17 @@ def make_house(api_session):
 
 @pytest.fixture
 def make_title(api_session):
-    def _make_title(*, slug=None, name="Test Title", group=None):
+    def _make_title(
+        *, slug=None, name="Test Title", group=None, created=None, abolished=None
+    ):
         slug = slug or f"test.title-{next(_slug_counter)}"
-        title = TitleTable(slug=slug, name=name, group_name=group)
+        title = TitleTable(
+            slug=slug,
+            name=name,
+            group_name=group,
+            created_event_slug=created.slug if created else None,
+            abolished_event_slug=abolished.slug if abolished else None,
+        )
         api_session.add(title)
         api_session.flush()
         return title
@@ -130,6 +139,7 @@ def make_person(api_session, make_event):
         birth=None,
         death=None,
         house=None,
+        birth_house=None,
         sex=None,
     ):
         slug = slug or f"test.person-{next(_slug_counter)}"
@@ -140,9 +150,10 @@ def make_person(api_session, make_event):
             name_family=family,
             name_prefix=prefix,
             name_chosen=chosen,
-            birth_event_id=birth.id,
-            death_event_id=death.id if death else None,
+            birth_event_slug=birth.slug,
+            death_event_slug=death.slug if death else None,
             house_slug=house.slug if house else None,
+            birth_house_slug=birth_house.slug if birth_house else None,
             sex=sex,
         )
         api_session.add(person)
@@ -168,9 +179,9 @@ def make_tenure(api_session, make_event):
         tenure = TenureTable(
             person_slug=person.slug,
             title_slug=title.slug,
-            start_event_id=start.id,
-            end_event_id=end.id if end else None,
-            ceremony_event_id=ceremony.id if ceremony else None,
+            start_event_slug=start.slug,
+            end_event_slug=end.slug if end else None,
+            ceremony_event_slug=ceremony.slug if ceremony else None,
             pretense=pretense,
             regent_for_slug=regent_for.slug if regent_for else None,
         )
@@ -197,8 +208,8 @@ def make_family(api_session):
             slug=slug,
             father_slug=father.slug if father else None,
             mother_slug=mother.slug if mother else None,
-            married_event_id=married.id if married else None,
-            divorced_event_id=divorced.id if divorced else None,
+            married_event_slug=married.slug if married else None,
+            divorced_event_slug=divorced.slug if divorced else None,
         )
         api_session.add(family)
         api_session.flush()
