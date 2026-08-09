@@ -227,6 +227,16 @@ def build_graph(
     return graph
 
 
+def _tint(border: str, amount: float = 0.85) -> str:
+    """Blends a border color toward white for a matching light background,
+    same background/border relationship TITLE_COLOR/FAMILY_COLOR already
+    hand-tune — done algorithmically here since HOUSE_COLORS/NO_HOUSE_COLOR
+    is a ramp, not a single fixed pair."""
+    r, g, b = int(border[1:3], 16), int(border[3:5], 16), int(border[5:7], 16)
+    r, g, b = (round(c + (255 - c) * amount) for c in (r, g, b))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
 def _apply_colors(
     network: Network,
     people: dict[str, Person],
@@ -239,10 +249,8 @@ def _apply_colors(
         if node["group"] == "person":
             house = people[node["id"]].house
             root = _root_house(house, houses) if house else None
-            color = {
-                "background": "#ffffff",
-                "border": house_colors.get(root or "", NO_HOUSE_COLOR),
-            }
+            border = house_colors.get(root or "", NO_HOUSE_COLOR)
+            color = {"background": _tint(border), "border": border}
             node["color"] = {**color, "highlight": color}
             node["borderWidth"] = 3
         elif node["group"] == "title":
