@@ -13,10 +13,19 @@ A FastAPI service for modeling European nobility family trees — tracking peopl
 
 HousePy models European noble houses using:
 
-- **Person** — individuals with name, birth, and death data
+- **Person** — individuals with name, birth, and death data, an optional
+  current `house` and `birth_house` (when it differs — e.g. a house rename
+  partway through life), and an optional `sex` (`male`/`female`; unset means
+  not recorded)
 - **Family** — household/dynastic groupings
-- **Title** — Regnal or Peerage titles, with creation/ascension and optional descent events
-- **House** — a dynasty/noble house, with optional parent house (cadet branches), founder, and founding/exile events
+- **Title** — Regnal or Peerage titles, with tenure start/end/ceremony events
+  per holder, plus `created`/`abolished` events dating the office itself
+  (independent of any one holder's tenure — e.g. an office superseded by a
+  new one, distinct from its last holder's own tenure ending)
+- **House** — a dynasty/noble house, with optional parent house (cadet
+  branches), founder, founding event, and `renamed_from` (for the same
+  house/institution continuing under a new name, e.g. Saxe-Coburg and
+  Gotha → Windsor)
 - **Event** — dated occurrences (birth, death, ascension, etc.) with optional place
 
 These four are exposed as JSON:API resources (`Person`/`Title`/`Family`/`House`
@@ -182,8 +191,13 @@ from the [`docs/`](docs/) folder on every push to `main`: a static Redoc export 
 API schema, and an interactive
 [pyvis](https://pyvis.readthedocs.io/)/[NetworkX](https://networkx.org/)
 family-tree graph (`docs/graph.html`) linking people, titles, and families.
-Both are generated fresh at deploy time (`scripts/export_openapi.py`,
-`scripts/export_graph.py`) — neither file is committed.
+Person nodes are colored by house (each house's color traced back to its
+root house, so cadet branches share a color with their parent) and shaped by
+`sex` (square/rounded-box corners, diamond when unset); clicking a node
+highlights its immediate family/title neighborhood and dims the rest,
+clicking empty canvas resets it. Both files are generated fresh at deploy
+time (`scripts/export_openapi.py`, `scripts/export_graph.py`) — neither is
+committed.
 
 ## Contributing
 
