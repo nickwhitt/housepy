@@ -11,11 +11,12 @@ abstract: >-
 authors:
   - family-names: Whitt
     given-names: Nick
+    orcid: "https://orcid.org/0009-0007-8267-391X"
 repository-code: "https://github.com/nickwhitt/housepy"
 license:
   - MIT
   - CC-BY-4.0
-version: 1.1.1
+version: 1.1.2
 date-released: "2026-08-09"
 keywords:
   - genealogy
