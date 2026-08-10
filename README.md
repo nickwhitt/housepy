@@ -4,6 +4,7 @@
 [![CI](https://github.com/nickwhitt/housepy/actions/workflows/ci.yml/badge.svg)](https://github.com/nickwhitt/housepy/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](pyproject.toml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21866352.svg)](https://doi.org/10.5281/zenodo.21866352)
 
 A FastAPI service for modeling European nobility family trees — tracking people, titles, and lineage events through a graph-backed data model.
 
