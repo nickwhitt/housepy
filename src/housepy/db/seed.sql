@@ -10,7 +10,9 @@ INSERT INTO "events" VALUES('hesse-darmstadt.ludwig-i+death',1830,4,6,NULL,NULL,
 INSERT INTO "events" VALUES('hesse-darmstadt.ludwig-i+hesse-and-by-rhine.grand-duke+start',1806,8,14,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('hesse-darmstadt.ludwig-i+hesse-darmstadt.landgrave+start',1790,4,6,NULL,NULL,NULL,NULL,'Ludwig X',NULL,NULL);
 INSERT INTO "events" VALUES('hesse-darmstadt.landgrave+abolished',1806,8,14,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-INSERT INTO "events" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family+married',1741,8,12,'Zweibrücken, Duchy of Palatinate-Zweibrücken',NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "events" VALUES('hesse-darmstadt.caroline+birth',1721,3,9,'Strasbourg, Kingdom of France',NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "events" VALUES('hesse-darmstadt.caroline+death',1774,3,30,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "events" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family+married',1741,8,12,'Zweibrücken, Duchy of Palatinate-Zweibrücken',NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('windsor.elizabeth-ii+birth',1926,4,21,'Mayfair, London, England',NULL,'York','of','Elizabeth',NULL,NULL);
 INSERT INTO "events" VALUES('windsor.elizabeth-ii+death',2022,9,8,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('windsor.elizabeth-ii+united-kingdom.queen+start',1952,2,6,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
@@ -151,6 +153,7 @@ INSERT INTO "titles" VALUES('saxe-lauenburg.duke','Duke of Saxe-Lauenburg',NULL,
 INSERT INTO "titles" VALUES('greece.king','King of the Hellenes',NULL,NULL,NULL);
 INSERT INTO "people" VALUES('hesse-darmstadt.ludwig-ix','Ludwig',NULL,NULL,'Ludwig IX',NULL,NULL,'hesse-darmstadt.ludwig-ix+birth','hesse-darmstadt.ludwig-ix+death','hesse-darmstadt',NULL,'male');
 INSERT INTO "people" VALUES('hesse-darmstadt.friederike-luise','Friederike Luise','Hesse-Darmstadt','of',NULL,NULL,NULL,'hesse-darmstadt.friederike-luise+birth','hesse-darmstadt.friederike-luise+death','hesse-darmstadt',NULL,'female');
+INSERT INTO "people" VALUES('hesse-darmstadt.caroline','Caroline Henriette Christiane Philippine Louise','Zweibrücken','of','Caroline',NULL,NULL,'hesse-darmstadt.caroline+birth','hesse-darmstadt.caroline+death',NULL,NULL,'female');
 INSERT INTO "people" VALUES('hesse-darmstadt.ludwig-i','Ludwig',NULL,NULL,'Ludwig I',NULL,NULL,'hesse-darmstadt.ludwig-i+birth','hesse-darmstadt.ludwig-i+death','hesse-darmstadt',NULL,'male');
 INSERT INTO "people" VALUES('windsor.elizabeth-ii','Elizabeth Alexandra Mary',NULL,NULL,'Elizabeth II',NULL,NULL,'windsor.elizabeth-ii+birth','windsor.elizabeth-ii+death','windsor',NULL,'female');
 INSERT INTO "people" VALUES('mountbatten.philip','Philip','Mountbatten',NULL,NULL,NULL,NULL,'mountbatten.philip+birth','mountbatten.philip+death','mountbatten','glucksburg','male');
@@ -207,7 +210,7 @@ INSERT INTO "tenures" VALUES(23,'glucksburg.christian-ix','denmark.king','glucks
 INSERT INTO "tenures" VALUES(24,'glucksburg.christian-ix','saxe-lauenburg.duke','glucksburg.christian-ix+saxe-lauenburg.duke+start',NULL,NULL,0,NULL);
 INSERT INTO "tenures" VALUES(25,'glucksburg.christian-ix','schleswig-holstein.duke','glucksburg.christian-ix+schleswig-holstein.duke+start',NULL,NULL,0,NULL);
 INSERT INTO "tenures" VALUES(26,'glucksburg.george-i','greece.king','glucksburg.george-i+greece.king+start',NULL,NULL,0,NULL);
-INSERT INTO "families" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family','hesse-darmstadt.ludwig-ix','hesse-darmstadt.friederike-luise','hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family+married',NULL);
+INSERT INTO "families" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family','hesse-darmstadt.ludwig-ix','hesse-darmstadt.caroline','hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family+married',NULL);
 INSERT INTO "families" VALUES('mountbatten.philip+windsor.elizabeth-ii+family','mountbatten.philip','windsor.elizabeth-ii','mountbatten.philip+windsor.elizabeth-ii+family+married',NULL);
 INSERT INTO "families" VALUES('glucksburg.andrew+battenberg.alice+family','glucksburg.andrew','battenberg.alice','glucksburg.andrew+battenberg.alice+family+married',NULL);
 INSERT INTO "families" VALUES('battenberg.louis+hesse-darmstadt.victoria+family','battenberg.louis','hesse-darmstadt.victoria','battenberg.louis+hesse-darmstadt.victoria+family+married',NULL);
@@ -222,7 +225,7 @@ INSERT INTO "families" VALUES('hesse-darmstadt.ludwig-iv+saxe-coburg-gotha.alice
 INSERT INTO "families" VALUES('hesse-darmstadt.karl+hohenzollern.elisabeth+family','hesse-darmstadt.karl','hohenzollern.elisabeth','hesse-darmstadt.karl+hohenzollern.elisabeth+family+married',NULL);
 INSERT INTO "families" VALUES('glucksburg.christian-ix+hesse-kassel.louise+family','glucksburg.christian-ix','hesse-kassel.louise','glucksburg.christian-ix+hesse-kassel.louise+family+married',NULL);
 INSERT INTO "families" VALUES('glucksburg.george-i+romanov.olga-constantinovna+family','glucksburg.george-i','romanov.olga-constantinovna','glucksburg.george-i+romanov.olga-constantinovna+family+married',NULL);
-INSERT INTO "family_children" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family','hesse-darmstadt.ludwig-i',0);
+INSERT INTO "family_children" VALUES('hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family','hesse-darmstadt.ludwig-i',0);
 INSERT INTO "family_children" VALUES('mountbatten.philip+windsor.elizabeth-ii+family','windsor.charles-iii',0);
 INSERT INTO "family_children" VALUES('glucksburg.andrew+battenberg.alice+family','mountbatten.philip',0);
 INSERT INTO "family_children" VALUES('battenberg.louis+hesse-darmstadt.victoria+family','battenberg.alice',0);

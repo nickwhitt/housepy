@@ -18,7 +18,7 @@ def test_list_includes_known_records(session):
     houses = loader.list_houses(session)
     assert {h.slug for h in houses} >= {"hesse", "hesse-darmstadt"}
     families = loader.list_families(session)
-    assert "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family" in {
+    assert "hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family" in {
         f.slug for f in families
     }
 
@@ -72,7 +72,7 @@ def test_family_children_order_preserved(session):
     families = loader.list_families(session)
     assert families[0].children == ["hesse-darmstadt.ludwig-i"]
     assert families[0].father == "hesse-darmstadt.ludwig-ix"
-    assert families[0].mother == "hesse-darmstadt.friederike-luise"
+    assert families[0].mother == "hesse-darmstadt.caroline"
 
 
 def test_house_founder_and_founded_event(session):
@@ -110,7 +110,7 @@ def test_house_renamed_from(session):
 def test_families_for_person(session):
     families = loader.families_for_person(session, "hesse-darmstadt.ludwig-ix")
     assert [f.slug for f in families] == [
-        "hesse-darmstadt.ludwig-ix+hesse-darmstadt.friederike-luise+family"
+        "hesse-darmstadt.ludwig-ix+hesse-darmstadt.caroline+family"
     ]
 
 
