@@ -36,10 +36,43 @@ HOUSE_COLORS = [
 ]
 NO_HOUSE_COLOR = "#898781"
 
+# `_house_colors` cycles HOUSE_COLORS past its 8 slots (`i % len(HOUSE_COLORS)`)
+# — the seed data already has 8 distinct root houses (confirmed 2026-08-14 by
+# walking `_root_house()` over every house in seed.sql), so the 9th root house
+# added to the dataset would silently reuse an existing color: not "hard to
+# tell apart" like the title/family fixes above, but a literal ΔE-0 duplicate
+# indistinguishable from a real second collision. A wider ramp doesn't fix
+# this — dataviz's own reference palette documents that a categorical ramp
+# only validates all-pairs through its first 3-4 slots, so adding hues 9-16
+# would just be unvalidated color soup, not a real fix. Instead, each pass
+# through the ramp toggles a second channel — a dashed vs. solid person-node
+# border via `shapeProperties.borderDashes` — so the 9th root (band 1) is
+# HOUSE_COLORS[0] *dashed*, distinguishable from the 1st root (band 0,
+# solid) even though the hue repeats. This doubles real capacity to 16
+# distinct roots before an exact (color, band) repeat happens again at the
+# 17th — not a general solution to unbounded growth (same posture as the
+# rejected tint-per-depth idea), just pushing the actual, already-hit
+# collision point out further. Revisit only if a 17th root shows up.
+HOUSE_BANDS = 2
+
 # Muted title/family node colors, warm vs. cool so they're distinguishable
-# from each other and from the vivid house ramp above.
-TITLE_COLOR = {"background": "#f6ead2", "border": "#b5793e"}  # warm ochre
-FAMILY_COLOR = {"background": "#e6ecf5", "border": "#5c6f95"}  # cool slate-blue
+# from each other and from the vivid house ramp above. TITLE_COLOR was
+# originally #b5793e ("warm ochre") but that sat close enough in hue to
+# HOUSE_COLORS' orange (#eb6834) to read as the same color at a glance —
+# validated via dataviz's validate_palette.js: ΔE 9.8 normal-vision / 1.0
+# protanopia against orange, both well under the safe floor. Shifted
+# further into olive/khaki territory to clear it (ΔE 21.2 / 12.0).
+TITLE_COLOR = {"background": "#ece6dd", "border": "#7d5a1f"}  # olive ochre
+# FAMILY_COLOR was originally #5c6f95 ("cool slate-blue") for the same
+# warm/cool contrast with TITLE_COLOR, but a blue-gray inherently sits
+# near HOUSE_COLORS' blue (#2a78d6) and violet (#4a3aa7) — those two
+# already claim the entire cool hue range, so no blue-leaning tint clears
+# the floor against both (validated: ΔE 10.5 normal-vision vs blue, worse
+# than the safe floor). Moved into the one unclaimed gap in the ramp's hue
+# wheel, between violet and magenta (a plum/wine tone) — worst pair across
+# every house color + TITLE_COLOR is ΔE 16.6 normal-vision / 10.5 CVD
+# (vs. red), comfortably clear.
+FAMILY_COLOR = {"background": "#f0e1ea", "border": "#9c3a72"}  # plum
 
 # Pedigree-chart shapes: sharp-cornered box (male) vs. rounded box (female,
 # via shapeProperties.borderRadius); diamond fallback for unset sex.
@@ -78,7 +111,11 @@ def _root_house(slug: str, houses: dict[str, House]) -> str:
 
 def _house_colors(
     people: dict[str, Person], houses: dict[str, House]
-) -> dict[str, str]:
+) -> dict[str, tuple[str, bool]]:
+    """Maps each root house to (border color, dashed) — dashed marks a
+    second pass through HOUSE_COLORS, so a repeated hue past the 8th root
+    still reads as distinct from its color's first occupant. See
+    HOUSE_BANDS above."""
     roots = sorted(
         {
             _root_house(person.house, houses)
@@ -86,7 +123,13 @@ def _house_colors(
             if person.house
         }
     )
-    return {root: HOUSE_COLORS[i % len(HOUSE_COLORS)] for i, root in enumerate(roots)}
+    return {
+        root: (
+            HOUSE_COLORS[i % len(HOUSE_COLORS)],
+            (i // len(HOUSE_COLORS)) % HOUSE_BANDS == 1,
+        )
+        for i, root in enumerate(roots)
+    }
 
 
 def _house_line(person: Person, houses: dict[str, House]) -> str:
@@ -241,7 +284,7 @@ def _apply_colors(
     network: Network,
     people: dict[str, Person],
     houses: dict[str, House],
-    house_colors: dict[str, str],
+    house_colors: dict[str, tuple[str, bool]],
 ) -> None:
     # pyvis drops an explicit `color` when `group` is also set, so colors are
     # applied here instead, as a pass over the already-built pyvis nodes.
@@ -249,10 +292,17 @@ def _apply_colors(
         if node["group"] == "person":
             house = people[node["id"]].house
             root = _root_house(house, houses) if house else None
-            border = house_colors.get(root or "", NO_HOUSE_COLOR)
+            border, dashed = house_colors.get(root or "", (NO_HOUSE_COLOR, False))
             color = {"background": _tint(border), "border": border}
             node["color"] = {**color, "highlight": color}
             node["borderWidth"] = 3
+            if dashed:
+                # Merges with PERSON_SHAPE's borderRadius rather than
+                # overwriting it.
+                node["shapeProperties"] = {
+                    **node.get("shapeProperties", {}),
+                    "borderDashes": True,
+                }
         elif node["group"] == "title":
             node["color"] = {**TITLE_COLOR, "highlight": TITLE_COLOR}
         elif node["group"] == "family":

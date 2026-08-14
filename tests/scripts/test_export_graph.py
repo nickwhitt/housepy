@@ -373,11 +373,11 @@ def test_house_colors_assigned_in_sorted_order_not_insertion_order():
         "p2": _person(slug="p2", house="test.house-a"),
     }
     colors = _house_colors(people, {})
-    assert colors["test.house-a"] == HOUSE_COLORS[0]
-    assert colors["test.house-z"] == HOUSE_COLORS[1]
+    assert colors["test.house-a"] == (HOUSE_COLORS[0], False)
+    assert colors["test.house-z"] == (HOUSE_COLORS[1], False)
 
 
-def test_house_colors_wrap_around_past_ramp_length():
+def test_house_colors_wrap_around_reuses_hue_but_flags_it_dashed():
     house_slugs = [
         f"test.house-{letter}" for letter in "abcdefghi"
     ]  # 9 houses > 8-slot ramp
@@ -386,8 +386,28 @@ def test_house_colors_wrap_around_past_ramp_length():
         for i, house in enumerate(house_slugs)
     }
     colors = _house_colors(people, {})
-    assert colors["test.house-a"] == HOUSE_COLORS[0]
-    assert colors["test.house-i"] == HOUSE_COLORS[0]
+    # 9th root reuses the 1st root's hue (only 8 slots)...
+    assert colors["test.house-a"][0] == HOUSE_COLORS[0]
+    assert colors["test.house-i"][0] == HOUSE_COLORS[0]
+    # ...but isn't a true duplicate: the dash flag tells them apart.
+    assert colors["test.house-a"][1] is False
+    assert colors["test.house-i"][1] is True
+
+
+def test_house_colors_third_pass_returns_to_solid():
+    # 17 houses: index 16 is the 3rd pass through the 8-slot ramp, which
+    # wraps the 2-band dash cycle back to solid — an exact repeat of the
+    # 1st root's (color, dashed) pair. Documents the accepted limit rather
+    # than asserting it should be avoided.
+    house_slugs = [f"test.house-{i:02d}" for i in range(17)]
+    people = {
+        f"p{i}": _person(slug=f"p{i}", house=house)
+        for i, house in enumerate(house_slugs)
+    }
+    colors = _house_colors(people, {})
+    expected = (HOUSE_COLORS[0], False)
+    assert colors["test.house-00"] == expected
+    assert colors["test.house-16"] == expected
 
 
 def test_house_colors_keyed_by_root_not_cadet_branch():
@@ -395,7 +415,7 @@ def test_house_colors_keyed_by_root_not_cadet_branch():
     cadet = House(slug="test.hesse-darmstadt", name="Hesse-Darmstadt", parent=root.slug)
     person = _person(house=cadet.slug)
     colors = _house_colors({person.slug: person}, {root.slug: root, cadet.slug: cadet})
-    assert colors == {root.slug: HOUSE_COLORS[0]}
+    assert colors == {root.slug: (HOUSE_COLORS[0], False)}
 
 
 def test_house_colors_keyed_by_predecessor_not_renamed_house():
@@ -407,7 +427,7 @@ def test_house_colors_keyed_by_predecessor_not_renamed_house():
     colors = _house_colors(
         {person.slug: person}, {predecessor.slug: predecessor, renamed.slug: renamed}
     )
-    assert colors == {predecessor.slug: HOUSE_COLORS[0]}
+    assert colors == {predecessor.slug: (HOUSE_COLORS[0], False)}
 
 
 def test_root_house_returns_slug_unchanged_when_no_parent_or_rename():
@@ -448,13 +468,60 @@ def test_apply_colors_person_highlight_matches_base_color():
     network = Network()
     network.add_node(person.slug, group="person")
     _apply_colors(
-        network, {person.slug: person}, {house.slug: house}, {house.slug: "#123456"}
+        network,
+        {person.slug: person},
+        {house.slug: house},
+        {house.slug: ("#123456", False)},
     )
     color = network.nodes[0]["color"]
     assert color["highlight"] == {
         "background": color["background"],
         "border": color["border"],
     }
+
+
+def test_apply_colors_person_not_dashed_by_default():
+    house = House(slug="test.house", name="Test House")
+    person = _person(house=house.slug)
+    network = Network()
+    network.add_node(person.slug, group="person")
+    _apply_colors(
+        network,
+        {person.slug: person},
+        {house.slug: house},
+        {house.slug: ("#123456", False)},
+    )
+    assert "shapeProperties" not in network.nodes[0]
+
+
+def test_apply_colors_person_dashed_on_second_band():
+    house = House(slug="test.house", name="Test House")
+    person = _person(house=house.slug)
+    network = Network()
+    network.add_node(person.slug, group="person")
+    _apply_colors(
+        network,
+        {person.slug: person},
+        {house.slug: house},
+        {house.slug: ("#123456", True)},
+    )
+    assert network.nodes[0]["shapeProperties"]["borderDashes"] is True
+
+
+def test_apply_colors_person_dashed_merges_with_existing_shape_properties():
+    house = House(slug="test.house", name="Test House")
+    person = _person(house=house.slug, sex="male")
+    network = Network()
+    network.add_node(person.slug, group="person", shapeProperties={"borderRadius": 0})
+    _apply_colors(
+        network,
+        {person.slug: person},
+        {house.slug: house},
+        {house.slug: ("#123456", True)},
+    )
+    node = network.nodes[0]
+    assert node["shapeProperties"]["borderRadius"] == 0
+    assert node["shapeProperties"]["borderDashes"] is True
 
 
 def test_apply_colors_title_highlight_matches_base_color():
